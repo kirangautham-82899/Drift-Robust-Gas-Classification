@@ -30,5 +30,6 @@ pip install -r requirements.txt
 - Step 3: drift visualisation - done, see `notebooks/03_drift_visualisation.ipynb`
 - Step 4: scaling pipeline, protocols A/B/C and metrics - done, see `notebooks/04_evaluation_framework.ipynb`
 - Step 5: baseline classifiers (kNN, SVM, Decision Tree, Random Forest, Naive Bayes) - done, see `notebooks/05_baseline_models.ipynb`
+- Step 6: PCA and LDA comparison - done, see `notebooks/06_pca_lda.ipynb`
 
 Results will be added here as each step is completed.

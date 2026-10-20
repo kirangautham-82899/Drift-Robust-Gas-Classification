@@ -1,0 +1,8 @@
+,pooled accuracy,pooled accuracy,pooled accuracy,pooled macro-F1,pooled macro-F1,pooled macro-F1,change in accuracy vs None,change in accuracy vs None
+reduction,None,PCA,LDA,None,PCA,LDA,PCA,LDA
+model,,,,,,,,
+kNN,0.696,0.683,0.669,0.707,0.693,0.677,-0.013,-0.028
+SVM,0.727,0.67,0.661,0.74,0.695,0.672,-0.057,-0.066
+Decision Tree,0.497,0.53,0.617,0.466,0.515,0.609,0.033,0.12
+Random Forest,0.647,0.704,0.677,0.617,0.683,0.674,0.057,0.029
+Naive Bayes,0.565,0.521,0.716,0.567,0.509,0.716,-0.044,0.151

@@ -21,9 +21,16 @@ LAST_BATCH = 10
 Split = namedtuple("Split", ["protocol", "name", "train_batches", "test_batches"])
 
 
-def make_pipeline(model):
-    """Scaler + model. Fitting this pipeline fits the scaler on training data only."""
-    return Pipeline([("scaler", StandardScaler()), ("model", model)])
+def make_pipeline(model, reducer=None):
+    """Scaler (+ optional PCA/LDA reducer) + model.
+
+    Fitting this pipeline fits the scaler and the reducer on training data only.
+    """
+    steps = [("scaler", StandardScaler())]
+    if reducer is not None:
+        steps.append(("reducer", reducer))
+    steps.append(("model", model))
+    return Pipeline(steps)
 
 
 def get_splits(protocol):

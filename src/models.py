@@ -1,8 +1,10 @@
-"""The baseline classifiers (Step 5).
+"""The classifiers used in the project.
 
 Settings are the usual library defaults, fixed in advance. They are NOT tuned
 here; tuning on training batches only is done in Step 8.
 """
+from sklearn.decomposition import PCA
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
@@ -13,14 +15,27 @@ from src.evaluation import SEED, make_pipeline
 
 BASELINE_NAMES = ["kNN", "SVM", "Decision Tree", "Random Forest", "Naive Bayes"]
 
+PCA_VARIANCE = 0.95   # PCA keeps as many components as needed for 95% of the training variance
+LDA_COMPONENTS = 4    # 5 gases -> at most 4 LDA components
 
-def get_baselines():
-    """Return {name: function that builds a fresh scaler + classifier pipeline}."""
+# dimensionality reduction options: name -> function that builds a fresh reducer (or None)
+REDUCTIONS = {
+    "None": lambda: None,
+    "PCA": lambda: PCA(n_components=PCA_VARIANCE, svd_solver="full", random_state=SEED),
+    "LDA": lambda: LinearDiscriminantAnalysis(n_components=LDA_COMPONENTS),
+}
+
+
+def get_baselines(reduction="None"):
+    """Return {name: function that builds a fresh scaler [+ reducer] + classifier pipeline}."""
+    if reduction not in REDUCTIONS:
+        raise ValueError(f"reduction must be one of {list(REDUCTIONS)}")
+    reducer = REDUCTIONS[reduction]
     return {
-        "kNN": lambda: make_pipeline(KNeighborsClassifier(n_neighbors=5)),
-        "SVM": lambda: make_pipeline(SVC(kernel="rbf", C=1.0, gamma="scale", random_state=SEED)),
-        "Decision Tree": lambda: make_pipeline(DecisionTreeClassifier(random_state=SEED)),
+        "kNN": lambda: make_pipeline(KNeighborsClassifier(n_neighbors=5), reducer()),
+        "SVM": lambda: make_pipeline(SVC(kernel="rbf", C=1.0, gamma="scale", random_state=SEED), reducer()),
+        "Decision Tree": lambda: make_pipeline(DecisionTreeClassifier(random_state=SEED), reducer()),
         "Random Forest": lambda: make_pipeline(
-            RandomForestClassifier(n_estimators=100, random_state=SEED, n_jobs=-1)),
-        "Naive Bayes": lambda: make_pipeline(GaussianNB()),
+            RandomForestClassifier(n_estimators=100, random_state=SEED, n_jobs=-1), reducer()),
+        "Naive Bayes": lambda: make_pipeline(GaussianNB(), reducer()),
     }
