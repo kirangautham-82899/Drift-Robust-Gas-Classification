@@ -24,4 +24,7 @@ pip install -r requirements.txt
 
 ## Status
 
-Step 0 (project setup) done. Results will be added here as each step is completed.
+- Step 0: project setup - done
+- Step 1: load data, remove Toluene (12,077 samples, 5 gases) - done, see `notebooks/01_load_and_remove_toluene.ipynb`
+
+Results will be added here as each step is completed.

@@ -75,6 +75,51 @@ Result: 5 classes (Ethanol, Ethylene, Ammonia, Acetaldehyde, Acetone), 12,077 sa
 | **12** | Repeated runs over several seeds: mean ± standard deviation for randomised models | Results table with spread | Add repeated runs with mean and std |
 | **13** | Core conclusions, Limitations section, README, viva Q&A sheet | Every README number traced to a notebook | Write README, conclusions and limitations |
 
+## 5b. UI (interactive dashboard for the review/demo)
+
+A Streamlit web app (`app/`) that presents the project visually: data, drift, model results and a live prediction demo. It is built in four small stages, each right after the Core step whose results it needs, and each is committed and pushed like any other step.
+
+### Principles
+- **The UI only displays saved results.** All training happens in the notebooks. The notebooks write tables, figures and trained models to `results/`, and the app reads them. So the UI never shows a number that was not measured, and it opens instantly during a demo.
+- **Every chart has a plain-English caption** ("What this shows / what to notice") so a beginner, or the teacher, can read it without help.
+- **One clear flow:** problem → data → drift → models → results → leakage → demo → limitations.
+- **Consistent look:** one colour palette that is colour-blind safe, the same colour per gas and per model on every page, light and dark mode both readable, large readable fonts.
+- **Works offline** from the local project folder (no cloud, no login).
+
+### Pages
+| Page | What it shows | Source |
+|---|---|---|
+| 1. Overview | Problem, motivating question, dataset facts, pipeline diagram, the Toluene decision | Static text + Step 1 counts |
+| 2. Data Explorer | Samples per batch and per gas (after Toluene removal), feature ranges, a table viewer with batch/gas filters | Steps 1-2 |
+| 3. Drift Viewer | PCA scatter coloured by batch vs by gas, sensor-mean trends across batches, a batch slider | Step 3 |
+| 4. Model Results | Leaderboard of all models; choose protocol (A/B/C), metric (accuracy, macro-F1) and PCA/LDA option | Steps 5-9 |
+| 5. Per-Batch Drift | Accuracy/F1 per batch with confidence intervals for chosen models; the performance-drop line | Step 10 |
+| 6. Confusion Matrix | Pick model + batch, see where gases get confused | Step 10 |
+| 7. Random vs Time-Aware | Side-by-side bars showing the misleading random-split accuracy against the honest time-aware one | Step 11 |
+| 8. Live Demo | Pick a test batch and a sample, or upload a CSV of 128 features; shows the predicted gas, the probabilities and the true label | Trained models in `results/models/` |
+| 9. Limitations & About | The limitations list, references, student details | Plan + Step 13 |
+
+### UI steps
+| Step | When | What is done | How it is checked | Commit message |
+|---|---|---|---|---|
+| **U1** | After Step 5 | App skeleton, theme, sidebar navigation; pages 1-3 | App starts without errors; counts on page 2 match Step 1 | Add dashboard skeleton with overview, data and drift pages |
+| **U2** | After Step 10 | Pages 4-6 (model results, per-batch drift, confusion matrices) | Numbers shown equal the saved result files; every control changes the chart | Add model results and drift analysis pages |
+| **U3** | After Step 12 | Pages 7-8 (random vs time-aware, live demo) | Demo prediction for a known sample equals the notebook's prediction | Add leakage comparison and live prediction demo |
+| **U4** | After Step 13 | Page 9, polish, automatic smoke tests (Streamlit's `AppTest`), run instructions and screenshots in the README | Every page loads in the smoke test; the README run command works from a clean clone | Finish dashboard and add run instructions |
+
+Run command (planned): `streamlit run app/app.py`.
+
+### Extra libraries for the UI
+`streamlit` and `plotly` (interactive charts), plus `joblib` for loading saved models (already installed). They are not installed on this machine yet, and `pip install` failed here earlier with an SSL error, so installing them may need a fix on your side. This is checked in U1 before any UI work starts.
+
+### Demo flow (suggested, about 5 minutes)
+Overview → Drift Viewer (show the batches drifting apart) → Random vs Time-Aware (the "98% is misleading" moment) → Model Results and Per-Batch Drift (which models resist drift best) → Live Demo → Limitations.
+
+### UI risks
+- The Live Demo needs trained models saved to disk, so Steps 5-9 must save their models. This is added to those steps.
+- Interactive charts can be slow if they plot thousands of points. Plots are subsampled or pre-computed where needed.
+- The UI is a presentation layer, not a research result. Marks for the analysis come from the notebooks and report, so the UI never takes priority over Core.
+
 ## 6. BONUS steps (only after Core is complete and pushed, and only if the teacher agrees)
 
 Ask the teacher before B2: these methods go beyond the Zeroth review objectives.
@@ -120,7 +165,8 @@ Drift-Robust-Gas-Classification/
 ├── data_raw/Dataset/           # original batch1.dat … batch10.dat (unchanged)
 ├── src/                        # shared functions (loading, evaluation, plotting)
 ├── notebooks/                  # one notebook per step
-├── results/                    # saved tables and figures
+├── app/                        # Streamlit dashboard (app.py + pages/)
+├── results/                    # saved tables, figures and trained models (read by the app)
 └── tests/                      # leakage and data-integrity checks
 ```
 
@@ -129,3 +175,5 @@ Drift-Robust-Gas-Classification/
 - Confirm whether the GitHub repo is empty or already has files (checked before the first push; nothing is overwritten).
 - Teacher's decision on the Bonus methods.
 - Review date, if dated milestones are wanted.
+- Installing `streamlit` and `plotly` (pip failed with an SSL error in this environment); checked at U1.
+- Notebooks must save their models and result tables to `results/` so the app can read them.
