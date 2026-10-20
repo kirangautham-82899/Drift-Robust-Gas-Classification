@@ -29,4 +29,6 @@ pip install -r requirements.txt
 
 - Step 2: exploratory data analysis - done, see `notebooks/02_eda.ipynb`
 
+- Step 3: drift visualisation - done, see `notebooks/03_drift_visualisation.ipynb`
+
 Results will be added here as each step is completed.
