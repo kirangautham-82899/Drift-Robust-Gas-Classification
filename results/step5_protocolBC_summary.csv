@@ -1,0 +1,6 @@
+model,B mean accuracy,B worst,C mean accuracy,C worst
+kNN,0.407,0.149,0.826,0.696
+SVM,0.43,0.228,0.872,0.686
+Decision Tree,0.551,0.246,0.743,0.462
+Random Forest,0.506,0.228,0.848,0.653
+Naive Bayes,0.528,0.167,0.558,0.116

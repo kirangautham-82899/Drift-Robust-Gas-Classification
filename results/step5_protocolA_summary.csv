@@ -1,0 +1,6 @@
+,pooled accuracy,pooled macro-F1,mean per-batch accuracy,worst batch accuracy,fit+predict seconds
+SVM,0.7274,0.7399,0.7947,0.5167,1.5507
+kNN,0.6963,0.7075,0.7021,0.5181,0.6185
+Random Forest,0.6472,0.6167,0.6713,0.3478,0.836
+Naive Bayes,0.565,0.5669,0.5861,0.1848,0.1221
+Decision Tree,0.4968,0.4661,0.5708,0.355,0.3128
