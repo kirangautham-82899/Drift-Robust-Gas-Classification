@@ -1,0 +1,4 @@
+protocol,mean_accuracy,mean_macro_f1,weighted_accuracy,min_accuracy
+A,0.2083,0.0681,0.2257,0.1087
+B,0.2263,0.0729,0.2416,0.1087
+C,0.2182,0.0709,0.2252,0.1087

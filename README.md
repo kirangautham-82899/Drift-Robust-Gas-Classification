@@ -1,4 +1,4 @@
-# Drift-Robust Gas Classification Using Machine Learning
+﻿# Drift-Robust Gas Classification Using Machine Learning
 
 M.Tech Data Science (24DS601 - Machine Learning), Amrita Vishwa Vidyapeetham, Coimbatore.
 
@@ -26,9 +26,8 @@ pip install -r requirements.txt
 
 - Step 0: project setup - done
 - Step 1: load data, remove Toluene (12,077 samples, 5 gases) - done, see `notebooks/01_load_and_remove_toluene.ipynb`
-
 - Step 2: exploratory data analysis - done, see `notebooks/02_eda.ipynb`
-
 - Step 3: drift visualisation - done, see `notebooks/03_drift_visualisation.ipynb`
+- Step 4: scaling pipeline, protocols A/B/C and metrics - done, see `notebooks/04_evaluation_framework.ipynb`
 
 Results will be added here as each step is completed.
