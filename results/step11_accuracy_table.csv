@@ -1,0 +1,8 @@
+model,time-aware (A),"random, same sizes",random 80/20,gap: same-size random minus time-aware,gap: random 80/20 minus time-aware
+kNN,69.6,98.3,99.3,28.7,29.7
+SVM,72.7,97.2,98.4,24.5,25.6
+Decision Tree,49.7,95.6,97.9,45.9,48.2
+Random Forest,64.7,99.0,99.4,34.2,34.7
+Naive Bayes,56.5,64.2,65.8,7.7,9.3
+AdaBoost,47.2,85.2,86.6,38.0,39.3
+Gradient Boosting,55.8,98.7,99.2,42.9,43.4

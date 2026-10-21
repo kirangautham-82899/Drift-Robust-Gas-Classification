@@ -35,5 +35,6 @@ pip install -r requirements.txt
 - Step 8: hyperparameter tuning with batch-wise cross-validation - done, see `notebooks/08_tuning.ipynb` (tuning is run by `scripts/run_step8_tuning.py`)
 - Step 9: stacking ensemble - done, see `notebooks/09_stacking.ipynb` (computed by `scripts/run_step9_stacking.py`)
 - Step 10: per-batch drift analysis with bootstrap confidence intervals and confusion matrices - done, see `notebooks/10_drift_analysis.ipynb`
+- Step 11: random split vs time-aware split (leakage check) - done, see `notebooks/11_leakage_check.ipynb` (computed by `scripts/run_step11_leakage.py`)
 
 Results will be added here as each step is completed.

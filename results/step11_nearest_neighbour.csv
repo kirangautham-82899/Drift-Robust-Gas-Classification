@@ -1,0 +1,4 @@
+exam,median distance to nearest training row,test rows whose nearest training row is from the same batch (%)
+random 80/20,0.43,98.68
+"random, same sizes as protocol A",0.51,97.71
+time-aware (protocol A),3.03,0.0
