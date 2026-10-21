@@ -176,7 +176,9 @@ is not mixed into the headline numbers.
 - **Drift-compensation extras (Bonus B1-B4):** stable-feature selection, unlabelled adaptation (per-batch scaling, CORAL,
   subspace alignment) and light supervision. They go beyond the Zeroth review objectives, so they would be added only with the
   teacher's agreement and reported as separate tiers.
-- **Interactive dashboard (U1-U4):** planned in `PROJECT_PLAN.md`, not built yet.
+- **Interactive dashboard (U1-U4):** the first stage (U1) is built: the Overview, Data explorer and Drift viewer pages
+  (`streamlit run app/app.py`). The results pages (U2), the leakage comparison and live demo (U3) and the final polish (U4)
+  are still to do.
 
 ## How to reproduce
 
@@ -184,6 +186,10 @@ is not mixed into the headline numbers.
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
+# On Windows, if pip fails with CERTIFICATE_VERIFY_FAILED, add: --use-feature=truststore
+
+# Dashboard (Overview, Data explorer, Drift viewer so far)
+streamlit run app/app.py
 
 # Steps 1-7: run the notebooks in notebooks/ in order (01 to 07)
 # Step 8:  python scripts/run_step8_tuning.py     (about 19 min), then notebook 08
@@ -217,6 +223,7 @@ notebook 07 (boosting without reduction) is the slowest and takes about 25 minut
 
 ```
 data_raw/Dataset/   original batch files (unchanged)
+app/                Streamlit dashboard (app.py, common.py, views/)
 src/                loading, evaluation, models, tuning, stacking, analysis, leakage, repeats
 scripts/            long-running jobs for Steps 8, 9, 11 and 12 (save progress, restartable)
 notebooks/          one notebook per step, with results and explanations
@@ -230,6 +237,7 @@ PROJECT_PLAN.md     the full plan
 - Steps 0-12 (setup, data, EDA, drift visualisation, evaluation framework, baselines, PCA/LDA, boosting, tuning, stacking,
   drift analysis, leakage check, repeated runs): done, one notebook each (`notebooks/01_...` to `notebooks/12_...`).
 - Step 13 (conclusions, limitations, README): this document.
+- Dashboard stage U1 (overview, data explorer, drift viewer): done, in `app/`.
 
 ## References
 
