@@ -31,5 +31,6 @@ pip install -r requirements.txt
 - Step 4: scaling pipeline, protocols A/B/C and metrics - done, see `notebooks/04_evaluation_framework.ipynb`
 - Step 5: baseline classifiers (kNN, SVM, Decision Tree, Random Forest, Naive Bayes) - done, see `notebooks/05_baseline_models.ipynb`
 - Step 6: PCA and LDA comparison - done, see `notebooks/06_pca_lda.ipynb`
+- Step 7: boosting (AdaBoost, Gradient Boosting) - done, see `notebooks/07_boosting.ipynb`
 
 Results will be added here as each step is completed.
