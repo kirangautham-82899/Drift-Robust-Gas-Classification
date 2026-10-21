@@ -32,5 +32,6 @@ pip install -r requirements.txt
 - Step 5: baseline classifiers (kNN, SVM, Decision Tree, Random Forest, Naive Bayes) - done, see `notebooks/05_baseline_models.ipynb`
 - Step 6: PCA and LDA comparison - done, see `notebooks/06_pca_lda.ipynb`
 - Step 7: boosting (AdaBoost, Gradient Boosting) - done, see `notebooks/07_boosting.ipynb`
+- Step 8: hyperparameter tuning with batch-wise cross-validation - done, see `notebooks/08_tuning.ipynb` (tuning is run by `scripts/run_step8_tuning.py`)
 
 Results will be added here as each step is completed.

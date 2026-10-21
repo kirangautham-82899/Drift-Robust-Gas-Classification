@@ -1,0 +1,22 @@
+model,reduction,params,mean_macro_f1,mean_accuracy
+kNN,None,"{""n_neighbors"": 1, ""weights"": ""uniform""}",0.788,0.851
+kNN,PCA,"{""n_neighbors"": 1, ""weights"": ""uniform""}",0.801,0.869
+kNN,LDA,"{""n_neighbors"": 1, ""weights"": ""uniform""}",0.607,0.611
+SVM,None,"{""C"": 100, ""gamma"": 0.01}",0.809,0.886
+SVM,PCA,"{""C"": 1, ""gamma"": 0.1}",0.767,0.831
+SVM,LDA,"{""C"": 0.1, ""gamma"": ""scale""}",0.628,0.622
+Decision Tree,None,"{""max_depth"": 10, ""min_samples_leaf"": 1}",0.798,0.838
+Decision Tree,PCA,"{""max_depth"": 5, ""min_samples_leaf"": 20}",0.685,0.784
+Decision Tree,LDA,"{""max_depth"": 5, ""min_samples_leaf"": 5}",0.547,0.64
+Random Forest,None,"{""n_estimators"": 300, ""max_depth"": null, ""min_samples_leaf"": 1, ""max_features"": ""log2""}",0.794,0.837
+Random Forest,PCA,"{""n_estimators"": 300, ""max_depth"": 10, ""min_samples_leaf"": 1, ""max_features"": ""sqrt""}",0.813,0.89
+Random Forest,LDA,"{""n_estimators"": 300, ""max_depth"": 10, ""min_samples_leaf"": 1, ""max_features"": ""sqrt""}",0.499,0.527
+Naive Bayes,None,"{""var_smoothing"": 1e-09}",0.716,0.749
+Naive Bayes,PCA,"{""var_smoothing"": 0.001}",0.737,0.83
+Naive Bayes,LDA,"{""var_smoothing"": 1e-09}",0.59,0.579
+AdaBoost,None,"{""n_estimators"": 50, ""learning_rate"": 0.1, ""base_depth"": 2}",0.769,0.787
+AdaBoost,PCA,"{""n_estimators"": 200, ""learning_rate"": 0.1, ""base_depth"": 2}",0.797,0.902
+AdaBoost,LDA,"{""n_estimators"": 100, ""learning_rate"": 1.0, ""base_depth"": 1}",0.641,0.704
+Gradient Boosting,None,"{""n_estimators"": 100, ""max_depth"": 3}",0.769,0.862
+Gradient Boosting,PCA,"{""n_estimators"": 100, ""max_depth"": 2}",0.802,0.885
+Gradient Boosting,LDA,"{""n_estimators"": 100, ""max_depth"": 2}",0.681,0.737
