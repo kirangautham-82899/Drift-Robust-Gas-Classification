@@ -17,6 +17,7 @@ from sklearn.linear_model import LogisticRegression
 
 from src import evaluation as ev
 from src.data_loader import FEATURE_COLS
+from src.repeats import set_all_seeds
 from src.tuning import make_tuned
 
 BASE_FAMILIES = ["kNN", "SVM", "Random Forest", "Gradient Boosting", "Naive Bayes"]
@@ -84,9 +85,11 @@ def _metric_rows(split, n_train, preds, label_col_name):
     return rows
 
 
-def evaluate_stack_split(df, split, configs, return_model=False):
+def evaluate_stack_split(df, split, configs, return_model=False, seed=None):
     """Fit the stack on the split's training batches, then score the stack, a soft vote and
-    each base model on the test batches. Needs at least two training batches."""
+    each base model on the test batches. Needs at least two training batches.
+
+    seed: if given, every random_state inside the stack is set to it (used by the repeated runs)."""
     ev.check_split(split)
     if len(split.train_batches) < 2:
         raise ValueError("batch-wise folds need at least two training batches")
@@ -96,6 +99,8 @@ def evaluate_stack_split(df, split, configs, return_model=False):
     X_test = test[FEATURE_COLS].to_numpy()
 
     stack = make_stack(configs, train["batch"].to_numpy())
+    if seed is not None:
+        set_all_seeds(stack, seed)
     stack.fit(X_train, y_train)
 
     predictions = {"Stack (LR)": stack.predict(X_test), "Soft vote": soft_vote(stack, X_test)}
