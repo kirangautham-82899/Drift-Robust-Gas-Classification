@@ -78,6 +78,89 @@ def test_drift_viewer_runs_and_controls_work():
     no_errors(at)
 
 
+# ---------------------------------------------------------------------------------------------- U2 pages
+def test_model_results_page_runs_and_leaderboard_matches_the_notebooks():
+    at = run("model_results.py")
+    no_errors(at)
+    lb = common.leaderboard(common.all_results(), "A", "None", "Default")
+    # Steps 5 and 7: untuned models, no reduction, protocol A pooled accuracy
+    assert lb.loc["SVM", "accuracy"] == pytest.approx(72.7, abs=0.05)
+    assert lb.loc["kNN", "accuracy"] == pytest.approx(69.6, abs=0.05)
+    assert lb.loc["Gradient Boosting", "accuracy"] == pytest.approx(55.8, abs=0.05)
+    tuned = common.leaderboard(common.all_results(), "A", "None", "Tuned")      # Step 8
+    assert tuned.loc["SVM", "accuracy"] == pytest.approx(73.2, abs=0.05)
+    lda = common.leaderboard(common.all_results(), "A", "LDA", "Default")       # Step 6
+    assert lda.loc["Naive Bayes", "accuracy"] == pytest.approx(71.6, abs=0.05)
+
+
+def test_model_results_controls_work():
+    at = run("model_results.py")
+    at.radio[0].set_value("C")                      # protocol C
+    at.run()
+    no_errors(at)
+    at.radio[0].set_value("A")
+    at.radio[3].set_value("Tuned")                  # tuned settings
+    at.radio[2].set_value("PCA")
+    at.run()
+    no_errors(at)
+    at.radio[0].set_value("B")                      # tuned is not available for B: falls back with a message
+    at.run()
+    no_errors(at)
+    assert any("only tested on protocol A" in i.value for i in at.info)
+
+
+def test_per_batch_drift_page_runs_and_controls_work():
+    at = run("per_batch_drift.py")
+    no_errors(at)
+    at.radio[0].set_value("Macro-F1")
+    at.checkbox[0].set_value(False)
+    at.run()
+    no_errors(at)
+
+
+def test_confusion_page_runs_and_controls_work():
+    at = run("confusion_matrices.py")
+    no_errors(at)
+    at.selectbox[2].set_value("Batch 10")
+    at.checkbox[0].set_value(True)
+    at.run()
+    no_errors(at)
+
+
+def test_saved_model_predictions_reproduce_the_step10_accuracies():
+    preds = common.predictions()
+    ci = pd.read_csv(ROOT / "results" / "step10_per_batch_ci.csv", keep_default_na=False)
+    pooled = ci[ci["group"] == "4-10 (all)"].set_index("model")["accuracy"].astype(float)
+    assert len(preds) == 8881 and set(pooled.index) == set(c for c in preds.columns if c not in ("batch", "label"))
+    for model, acc in pooled.items():
+        assert (preds[model] == preds["label"]).mean() == pytest.approx(acc, abs=0.0006)    # CSV rounded to 4 decimals
+
+
+def test_confusion_helper_counts_every_recording():
+    preds = common.predictions()
+    cm = common.confusion(preds["label"], preds["SVM"])
+    assert cm.sum() == len(preds) and cm.shape == (5, 5)
+    assert np.trace(cm) == (preds["label"] == preds["SVM"]).sum()
+
+
+def test_ammonia_claim_in_the_readme_matches_the_saved_models():
+    """README: only 1 of the 10 analysed models drops below 40% found on any batch for Ammonia, 4 to 8 for each other gas."""
+    preds = common.predictions()
+    models = [c for c in preds.columns if c not in ("batch", "label")]
+    below = dict.fromkeys(common.GASES, 0)
+    for m in models:
+        worst = np.full(5, 100.0)
+        for b in range(4, 11):
+            d = preds[preds["batch"] == b]
+            cm = common.confusion(d["label"], d[m])
+            worst = np.minimum(worst, np.diag(cm) / cm.sum(axis=1) * 100)
+        for gas, w in zip(common.GASES, worst):
+            below[gas] += int(w < 40)
+    assert len(models) == 10 and below["Ammonia"] == 1
+    assert all(4 <= below[g] <= 8 for g in common.GASES if g != "Ammonia"), below
+    readme = " ".join((ROOT / "README.md").read_text(encoding="utf-8").split())
+    assert "only 1 of the 10 analysed models drops below 40% found on any batch, against 4 to 8 of 10 for each other gas" in readme
+
 def test_entry_point_runs():
     at = AppTest.from_file(str(APP / "app.py"), default_timeout=180)
     at.run()

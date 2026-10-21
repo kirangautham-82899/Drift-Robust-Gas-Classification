@@ -10,6 +10,9 @@ pages = [
     st.Page("views/overview.py", title="Overview", icon=":material/home:", default=True),
     st.Page("views/data_explorer.py", title="Data explorer", icon=":material/table_chart:"),
     st.Page("views/drift_viewer.py", title="Drift viewer", icon=":material/show_chart:"),
+    st.Page("views/model_results.py", title="Model results", icon=":material/leaderboard:"),
+    st.Page("views/per_batch_drift.py", title="Per-batch drift", icon=":material/timeline:"),
+    st.Page("views/confusion_matrices.py", title="Confusion matrices", icon=":material/grid_on:"),
 ]
 
 with st.sidebar:

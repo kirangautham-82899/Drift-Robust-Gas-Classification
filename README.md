@@ -122,8 +122,9 @@ is not mixed into the headline numbers.
 ## Conclusions
 
 1. **Drift is real and large.** Classical models lose a lot of accuracy on later batches: the tuned SVM falls from 90.3%
-   on batches 4-6 to 55.4% on batches 8-10. Errors are structured: the SVM tends to label other gases as Ethanol, Ethylene,
-   Acetaldehyde and Acetone are hit hardest in late batches, and Ammonia stays the most stable gas.
+   on batches 4-6 to 55.4% on batches 8-10. Errors are structured: the SVM tends to label other gases as Ethanol, and
+   Ethylene, Acetaldehyde and Acetone are hit hardest in late batches. Ammonia is the gas that the models lose least badly:
+   only 1 of the 10 analysed models drops below 40% found on any batch, against 4 to 8 of 10 for each other gas.
 2. **The best honest accuracy is about 73-75%.** SVM (73.2%) is the best single model. A plain average of five models
    (soft vote, 75.5% ± 0.14) scored higher pooled, but batch by batch it wins on 3 batches, loses on 3 and ties on 1, and its
    pooled lead comes mostly from batch 10, so we do not claim it is generally better than SVM.
@@ -176,9 +177,9 @@ is not mixed into the headline numbers.
 - **Drift-compensation extras (Bonus B1-B4):** stable-feature selection, unlabelled adaptation (per-batch scaling, CORAL,
   subspace alignment) and light supervision. They go beyond the Zeroth review objectives, so they would be added only with the
   teacher's agreement and reported as separate tiers.
-- **Interactive dashboard (U1-U4):** the first stage (U1) is built: the Overview, Data explorer and Drift viewer pages
-  (`streamlit run app/app.py`). The results pages (U2), the leakage comparison and live demo (U3) and the final polish (U4)
-  are still to do.
+- **Interactive dashboard (U1-U4):** stages U1 and U2 are built: the Overview, Data explorer, Drift viewer, Model results,
+  Per-batch drift and Confusion matrices pages (`streamlit run app/app.py`). The leakage comparison and live demo (U3) and
+  the final polish (U4) are still to do.
 
 ## How to reproduce
 
@@ -188,7 +189,7 @@ python -m venv .venv
 pip install -r requirements.txt
 # On Windows, if pip fails with CERTIFICATE_VERIFY_FAILED, add: --use-feature=truststore
 
-# Dashboard (Overview, Data explorer, Drift viewer so far)
+# Dashboard (six pages so far: data, drift, model results, per-batch drift, confusion matrices)
 streamlit run app/app.py
 
 # Steps 1-7: run the notebooks in notebooks/ in order (01 to 07)
@@ -237,7 +238,7 @@ PROJECT_PLAN.md     the full plan
 - Steps 0-12 (setup, data, EDA, drift visualisation, evaluation framework, baselines, PCA/LDA, boosting, tuning, stacking,
   drift analysis, leakage check, repeated runs): done, one notebook each (`notebooks/01_...` to `notebooks/12_...`).
 - Step 13 (conclusions, limitations, README): this document.
-- Dashboard stage U1 (overview, data explorer, drift viewer): done, in `app/`.
+- Dashboard stages U1 and U2 (overview, data explorer, drift viewer, model results, per-batch drift, confusion matrices): done, in `app/`.
 
 ## References
 
