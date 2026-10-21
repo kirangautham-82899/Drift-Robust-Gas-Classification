@@ -73,7 +73,7 @@ Result: 5 classes (Ethanol, Ethylene, Ammonia, Acetaldehyde, Acetone), 12,077 sa
 | **10** | Per-batch drift analysis: accuracy and macro-F1 per batch, **bootstrap confidence intervals**, confusion matrices, pooled results for batches 4-10 | Interpretation notes for noisy batches 4 and 5 | Add per-batch drift analysis |
 | **11** | Leakage check: random split vs time-aware split | Shows why the random-split number is misleading | Compare random split with time-aware split |
 | **12** | Repeated runs over several seeds: mean ± standard deviation for randomised models | Results table with spread | Add repeated runs with mean and std |
-| **13** | Core conclusions, Limitations section, README, viva Q&A sheet | Every README number traced to a notebook | Write README, conclusions and limitations |
+| **13** | Core conclusions, Limitations section, README (no viva Q&A sheet, by request) | Every README table checked against the result files by a test | Write README, conclusions and limitations |
 
 ## 5b. UI (interactive dashboard for the review/demo)
 
