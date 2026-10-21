@@ -1,7 +1,8 @@
-"""Shared helpers for the dashboard: paths, colours, cached data loaders and text boxes.
+"""Shared helpers for the dashboard: paths and cached data loaders.
 
 The dashboard only *displays* things that the notebooks measured. Anything it computes
 (PCA picture, batch averages) uses the same tested functions as the notebooks.
+Colours and page components live in design.py and ui.py.
 """
 import sys
 from pathlib import Path
@@ -21,24 +22,16 @@ from src import stacking             # noqa: E402
 
 RESULTS = ROOT / "results"
 
-# One colour per gas on every page (colour-blind safe Okabe-Ito colours)
-GAS_COLORS = {"Ethanol": "#0072B2", "Ethylene": "#E69F00", "Ammonia": "#009E73",
-              "Acetaldehyde": "#D55E00", "Acetone": "#CC79A7"}
-GASES = list(GAS_COLORS)
+from design import GASES  # noqa: E402  (re-exported: the five gases in their fixed order)
 
 FEATURE_NAMES = {1: "dR (steady-state response)", 2: "normalised dR"}
 
-# One colour per model family on every page
-FAMILY_COLORS = {"SVM": "#0072B2", "kNN": "#666666", "Decision Tree": "#999933", "Random Forest": "#009E73",
-                 "Naive Bayes": "#332288", "AdaBoost": "#882255", "Gradient Boosting": "#E69F00"}
-FAMILIES = list(FAMILY_COLORS)
+FAMILIES = ["SVM", "kNN", "Decision Tree", "Random Forest", "Naive Bayes", "AdaBoost", "Gradient Boosting"]
 REDUCTIONS = ["None", "PCA", "LDA"]
 REDUCTION_NAMES = {"None": "All 128 features", "PCA": "PCA (95% of the variance)", "LDA": "LDA (4 components)"}
-
 # The ten models analysed in Step 10 (family models with the reduction that scored best on validation, plus ensembles)
-MODEL_COLORS = {"Soft vote": "#D55E00", "SVM": "#0072B2", "SVM (untuned)": "#56B4E9", "Stack (LR)": "#CC79A7",
-                "Random Forest + PCA": "#009E73", "Gradient Boosting + PCA": "#E69F00", "AdaBoost + PCA": "#882255",
-                "kNN + PCA": "#666666", "Naive Bayes + PCA": "#332288", "Decision Tree": "#999933"}
+ANALYSIS_MODELS = ["Soft vote", "SVM", "SVM (untuned)", "Stack (LR)", "Random Forest + PCA", "Gradient Boosting + PCA",
+                   "AdaBoost + PCA", "kNN + PCA", "Naive Bayes + PCA", "Decision Tree"]
 
 
 def read_result(name):
@@ -85,11 +78,6 @@ def centroid_shift():
     scaler, _ = drift.fit_scaler_pca(df)
     table, between = drift.centroid_shift(df, scaler)
     return table, between
-
-
-def notice(text):
-    """A short plain-English box under a chart."""
-    st.info(text, icon=":material/lightbulb:")
 
 
 def feature_column(sensor, offset):
@@ -154,9 +142,14 @@ def load_models():
     return loaded
 
 
-@st.cache_data(show_spinner="Predicting the test batches with the saved models ...")
-def predictions():
-    """True label and every model's prediction for each recording of the test batches 4-10 (protocol A)."""
+PREDICTIONS_FILE = RESULTS / "dashboard_predictions.csv"
+
+
+def compute_predictions():
+    """True label and every model's prediction for each recording of the test batches 4-10 (protocol A).
+
+    Written to results/dashboard_predictions.csv by scripts/make_dashboard_cache.py so that the pages open instantly.
+    """
     df = load_data()
     test = df[df["batch"] >= 4].reset_index(drop=True)
     X = test[dl.FEATURE_COLS].to_numpy()
@@ -168,13 +161,72 @@ def predictions():
     return out
 
 
+@st.cache_data(show_spinner="Predicting the test batches with the saved models ...")
+def predictions():
+    """The saved predictions if the cache file exists (fast), otherwise computed from the saved models."""
+    if PREDICTIONS_FILE.exists():
+        return pd.read_csv(PREDICTIONS_FILE, keep_default_na=False)
+    return compute_predictions()
+
+
 def confusion(y_true, y_pred):
     """5 x 5 confusion counts, rows = true gas, columns = predicted gas (gases 1-5)."""
     codes = (np.asarray(y_true) - 1) * 5 + (np.asarray(y_pred) - 1)
     return np.bincount(codes, minlength=25).reshape(5, 5)
 
 
-def rgba(hex_colour, alpha):
-    """'#RRGGBB' -> 'rgba(r, g, b, alpha)' for translucent bands."""
-    h = hex_colour.lstrip("#")
-    return f"rgba({int(h[0:2], 16)}, {int(h[2:4], 16)}, {int(h[4:6], 16)}, {alpha})"
+# ---------------------------------------------------------------------------------------------- live demo
+DEMO_MODELS = ["Soft vote", "Stack (LR)", "SVM", "Random Forest + PCA", "Gradient Boosting + PCA", "AdaBoost + PCA",
+               "Naive Bayes + PCA", "kNN + PCA", "Decision Tree"]
+MAX_UPLOAD_ROWS = 5000
+
+
+def demo_predict(model_name, X):
+    """Predicted gas (1-5) and a probability for each of the 5 gases, from a saved model.
+
+    The SVM has no probabilities of its own, so its bars come from the same SVM refitted inside the stack with probability
+    outputs (Platt scaling). In rare cases the top bar can then differ from the SVM's predicted gas.
+    """
+    models = load_models()
+    stack = models["Stack (LR)"]
+    base = dict(zip(stacking.BASE_FAMILIES, stack.estimators_))      # fitted base pipelines, in the stack's order
+    if model_name == "Stack (LR)":
+        return stack.predict(X), stack.predict_proba(X)
+    if model_name == "Soft vote":
+        probs = np.mean([est.predict_proba(X) for est in stack.estimators_], axis=0)
+        return stack.classes_[probs.argmax(axis=1)], probs
+    model = models[model_name]
+    probs = base["SVM"].predict_proba(X) if model_name == "SVM" else model.predict_proba(X)
+    return model.predict(X), probs
+
+
+def parse_upload(frame):
+    """Turn an uploaded table into (X, labels or None). Accepts 128 feature columns (named f1..f128 or not),
+    optionally preceded by a gas label column (1-5). Raises ValueError with a plain message otherwise."""
+    if len(frame) == 0:
+        raise ValueError("The file has no rows.")
+    if len(frame) > MAX_UPLOAD_ROWS:
+        raise ValueError(f"Please upload at most {MAX_UPLOAD_ROWS:,} rows (the file has {len(frame):,}).")
+    labels = None
+    if all(c in frame.columns for c in dl.FEATURE_COLS):
+        features = frame[dl.FEATURE_COLS]
+    elif frame.shape[1] == dl.N_FEATURES:
+        features = frame
+    elif frame.shape[1] == dl.N_FEATURES + 1:
+        labels, features = frame.iloc[:, 0], frame.iloc[:, 1:]
+    else:
+        raise ValueError(f"Expected 128 feature columns (optionally with a gas label first), but the file has {frame.shape[1]} columns.")
+    try:
+        X = features.to_numpy(dtype=float)
+    except (TypeError, ValueError):
+        raise ValueError("All feature columns must contain numbers only.")
+    if not np.isfinite(X).all():
+        raise ValueError("The features contain missing or infinite values.")
+    if labels is not None:
+        try:
+            labels = labels.to_numpy(dtype=int)
+        except (TypeError, ValueError):
+            raise ValueError("The first column (the gas label) must be a whole number from 1 to 5.")
+        if not set(np.unique(labels)) <= {1, 2, 3, 4, 5}:
+            raise ValueError("Gas labels must be 1 (Ethanol), 2 (Ethylene), 3 (Ammonia), 4 (Acetaldehyde) or 5 (Acetone).")
+    return X, labels
