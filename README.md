@@ -119,6 +119,38 @@ Mean per-batch accuracy when each model is retrained on all earlier batches:
 This is much higher than protocol A, which shows how valuable recent labelled data is. It is a different (easier) task and
 is not mixed into the headline numbers.
 
+## Interactive dashboard
+
+A Streamlit app presents the data, the drift, the results and a live prediction demo on nine pages. It only displays what the
+notebooks measured; automated tests check that every page runs and that the numbers on screen match the saved results.
+
+```bash
+streamlit run app/app.py
+```
+
+| Page | What it shows |
+|---|---|
+| Overview | The problem in plain English, the fair-testing idea, the pipeline and the headline numbers |
+| Data explorer | Samples per batch, the gas mix, the feature scales and a filterable table, with the Step 1 data check |
+| Drift viewer | The same gas across batches, a map of all 128 numbers, and how far each gas has moved |
+| Model results | A leaderboard you can change (protocol, score, features, settings), the effect of PCA/LDA and tuning, and the 10-seed headline |
+| Per-batch drift | Accuracy per batch with 95% confidence bands, near vs far batches, and which differences are real |
+| Confusion matrices | Where the mistakes happen, for any model, any batch group, with a side-by-side comparison |
+| Random vs time-aware | Why a random split makes the models look almost perfect |
+| Live demo | Pick a recording (or upload a CSV), see the predicted gas, the confidence and how the other models vote |
+| Limitations and about | What the results do not tell you, objectives, references |
+
+| | |
+|---|---|
+| ![Overview](docs/screenshots/overview.jpg) | ![Model results](docs/screenshots/model-results.jpg) |
+| ![Per-batch drift](docs/screenshots/per-batch-drift.jpg) | ![Confusion matrices](docs/screenshots/confusion-matrices.jpg) |
+| ![Random vs time-aware](docs/screenshots/random-vs-time-aware.jpg) | ![Live demo](docs/screenshots/live-demo.jpg) |
+
+Design notes: it works in light and dark mode and on a phone; the colours are a validated colour-blind-safe palette (a gas or
+model keeps the same colour on every page, and the PCA map also uses marker shapes); heatmaps use one blue ramp; every chart has
+a "View as a table" twin so no value depends on hovering; every chart has a plain-English "What to notice" box with numbers
+computed from the data. The first page load takes a few seconds while the dataset is read.
+
 ## Conclusions
 
 1. **Drift is real and large.** Classical models lose a lot of accuracy on later batches: the tuned SVM falls from 90.3%
@@ -177,9 +209,6 @@ is not mixed into the headline numbers.
 - **Drift-compensation extras (Bonus B1-B4):** stable-feature selection, unlabelled adaptation (per-batch scaling, CORAL,
   subspace alignment) and light supervision. They go beyond the Zeroth review objectives, so they would be added only with the
   teacher's agreement and reported as separate tiers.
-- **Interactive dashboard (U1-U4):** stages U1 and U2 are built: the Overview, Data explorer, Drift viewer, Model results,
-  Per-batch drift and Confusion matrices pages (`streamlit run app/app.py`). The leakage comparison and live demo (U3) and
-  the final polish (U4) are still to do.
 
 ## How to reproduce
 
@@ -189,8 +218,10 @@ python -m venv .venv
 pip install -r requirements.txt
 # On Windows, if pip fails with CERTIFICATE_VERIFY_FAILED, add: --use-feature=truststore
 
-# Dashboard (six pages so far: data, drift, model results, per-batch drift, confusion matrices)
+# Dashboard (nine pages)
 streamlit run app/app.py
+# Optional: python scripts/make_dashboard_cache.py  (saves the models' predictions so the pages open faster;
+# the app computes them itself if the file is missing)
 
 # Steps 1-7: run the notebooks in notebooks/ in order (01 to 07)
 # Step 8:  python scripts/run_step8_tuning.py     (about 19 min), then notebook 08
@@ -224,7 +255,8 @@ notebook 07 (boosting without reduction) is the slowest and takes about 25 minut
 
 ```
 data_raw/Dataset/   original batch files (unchanged)
-app/                Streamlit dashboard (app.py, common.py, views/)
+app/                Streamlit dashboard (app.py, design.py, ui.py, common.py, views/)
+docs/screenshots/   screenshots of the dashboard used in this README
 src/                loading, evaluation, models, tuning, stacking, analysis, leakage, repeats
 scripts/            long-running jobs for Steps 8, 9, 11 and 12 (save progress, restartable)
 notebooks/          one notebook per step, with results and explanations
@@ -238,7 +270,8 @@ PROJECT_PLAN.md     the full plan
 - Steps 0-12 (setup, data, EDA, drift visualisation, evaluation framework, baselines, PCA/LDA, boosting, tuning, stacking,
   drift analysis, leakage check, repeated runs): done, one notebook each (`notebooks/01_...` to `notebooks/12_...`).
 - Step 13 (conclusions, limitations, README): this document.
-- Dashboard stages U1 and U2 (overview, data explorer, drift viewer, model results, per-batch drift, confusion matrices): done, in `app/`.
+- Dashboard stages U1-U4 (nine pages: overview, data explorer, drift viewer, model results, per-batch drift, confusion matrices,
+  random vs time-aware, live demo, limitations and about), with smoke tests and screenshots: done, in `app/`.
 
 ## References
 

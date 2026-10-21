@@ -110,7 +110,7 @@ A Streamlit web app (`app/`) that presents the project visually: data, drift, mo
 Run command (planned): `streamlit run app/app.py`.
 
 ### Extra libraries for the UI
-`streamlit` and `plotly` (interactive charts), plus `joblib` for loading saved models (already installed). They are not installed on this machine yet, and `pip install` failed here earlier with an SSL error, so installing them may need a fix on your side. This is checked in U1 before any UI work starts.
+`streamlit` and `plotly` (interactive charts), plus `joblib` for loading saved models. **Status: all four dashboard stages (U1-U4) are done.** The packages install with `pip install --use-feature=truststore` on this machine (plain `pip install` failed with an SSL certificate error because this Python has no certificate file of its own).
 
 ### Demo flow (suggested, about 5 minutes)
 Overview → Drift Viewer (show the batches drifting apart) → Random vs Time-Aware (the "98% is misleading" moment) → Model Results and Per-Batch Drift (which models resist drift best) → Live Demo → Limitations.
@@ -175,5 +175,5 @@ Drift-Robust-Gas-Classification/
 - Confirm whether the GitHub repo is empty or already has files (checked before the first push; nothing is overwritten).
 - Teacher's decision on the Bonus methods.
 - Review date, if dated milestones are wanted.
-- Installing `streamlit` and `plotly` (pip failed with an SSL error in this environment); checked at U1.
+- (done) Installing `streamlit` and `plotly`: works with `pip install --use-feature=truststore`.
 - Notebooks must save their models and result tables to `results/` so the app can read them.
