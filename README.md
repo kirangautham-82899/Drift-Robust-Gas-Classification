@@ -7,13 +7,15 @@
 A time-aware machine-learning study of sensor drift on the UCI Gas Sensor Array Drift dataset,<br>
 with an interactive dashboard that shows every result.
 
+[![Open the live app](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://drift-robust-gas-classification-ctfmhqhdsllpacizk7et2b.streamlit.app/)
+
 ![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-1.6-F7931E?logo=scikitlearn&logoColor=white)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.66-FF4B4B?logo=streamlit&logoColor=white)
 ![Plotly](https://img.shields.io/badge/Plotly-7.1-3F4F75?logo=plotly&logoColor=white)
 ![Tests](https://img.shields.io/badge/tests-pytest-0A9EDC?logo=pytest&logoColor=white)
 
-[Results](#main-results) · [Dashboard](#interactive-dashboard) · [Conclusions](#conclusions) · [Reproduce](#how-to-reproduce)
+[**🚀 Live app**](https://drift-robust-gas-classification-ctfmhqhdsllpacizk7et2b.streamlit.app/) · [Results](#main-results) · [Dashboard](#interactive-dashboard) · [Conclusions](#conclusions) · [Reproduce](#how-to-reproduce)
 
 </div>
 
@@ -146,6 +148,8 @@ so it is kept out of the headline.
 7. **Recent labels help most** (protocol C: 85-89%), but they cost labelling every new batch.
 
 ## Interactive dashboard
+
+**Try it live: [drift-robust-gas-classification-ctfmhqhdsllpacizk7et2b.streamlit.app](https://drift-robust-gas-classification-ctfmhqhdsllpacizk7et2b.streamlit.app/)**
 
 Nine pages that show the data, the drift and every result, plus a live demo where you pick a recording and watch the models
 vote. It only displays what the notebooks measured, and tests check the numbers on screen.
