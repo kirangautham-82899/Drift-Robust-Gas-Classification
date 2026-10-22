@@ -51,9 +51,31 @@ with tab2:
     c1, c2 = st.columns([1, 2])
     colour_by = c1.radio("Colour the points by", ["Batch (time)", "Gas"])
     lo, hi = c2.select_slider("Show batches", options=list(range(1, 11)), value=(1, 10))
-    show_path = st.checkbox("Draw the path of each gas's batch average", value=False)
+    t1, t2 = st.columns(2)
+    show_path = t1.checkbox("Draw the path of each gas's batch average", value=False)
+    animate = t2.toggle("Play through time, one batch at a time", value=False,
+                        help="Press ▶ under the map to watch the gases move from batch to batch.")
     shown = proj[(proj["batch"] >= lo) & (proj["batch"] <= hi)]
-    if colour_by == "Gas":
+    if animate:
+        pad_x = (proj["PC1"].max() - proj["PC1"].min()) * 0.04
+        pad_y = (proj["PC2"].max() - proj["PC2"].min()) * 0.04
+        fig = px.scatter(shown.sort_values("batch"), x="PC1", y="PC2", color="gas", symbol="gas", animation_frame="batch",
+                         category_orders={"gas": GASES}, color_discrete_map={g: gas_color(g) for g in GASES},
+                         symbol_map=GAS_SYMBOL, opacity=0.55, render_mode="svg",
+                         range_x=[proj["PC1"].min() - pad_x, proj["PC1"].max() + pad_x],
+                         range_y=[proj["PC2"].min() - pad_y, proj["PC2"].max() + pad_y])
+        fig.update_traces(marker=dict(size=6))
+        train = proj[proj["batch"] <= 3]
+        fig.add_trace(go.Histogram2dContour(x=train["PC1"], y=train["PC2"], ncontours=6, showscale=False, hoverinfo="skip",
+                                            contours=dict(coloring="none"), line=dict(color=tok()["muted"], width=1.4, dash="dot"),
+                                            name="training batches 1-3", showlegend=True))
+        style(fig, height=600, x_title="PC1", y_title="PC2", grid_x=True)
+        fig.layout.updatemenus[0].update(bgcolor=tok()["surface"], bordercolor=tok()["axis"], font=dict(color=tok()["ink"]), x=0, y=-0.08)
+        fig.layout.sliders[0].update(currentvalue=dict(prefix="Batch ", font=dict(color=tok()["ink"], size=15)), activebgcolor="#4f46e5",
+                                     bgcolor=tok()["mid"], bordercolor=tok()["axis"], font=dict(color=tok()["ink2"]), y=-0.04)
+        fig.layout.updatemenus[0].buttons[0].args[1].update(frame=dict(duration=900, redraw=True), transition=dict(duration=450))
+        fig.update_layout(margin=dict(b=90))
+    elif colour_by == "Gas":
         fig = go.Figure()
         for g in GASES:                                 # colour AND marker shape, so no gas depends on colour alone
             s = shown[shown["gas"] == g]
@@ -65,7 +87,7 @@ with tab2:
                          opacity=0.6, render_mode="webgl", hover_data=["gas"])
         fig.update_traces(marker=dict(size=6))
         fig.update_layout(coloraxis_colorbar=dict(title="batch", thickness=12, len=0.7))
-    if show_path:
+    if show_path and not animate:
         cent = shown.groupby(["gas", "batch"])[["PC1", "PC2"]].mean().reset_index()
         for g in GASES:
             c = cent[cent["gas"] == g]
@@ -74,7 +96,8 @@ with tab2:
                                      line=dict(color=gas_color(g), width=2),
                                      marker=dict(size=9, color=gas_color(g), symbol=GAS_SYMBOL[g], line=dict(width=2, color=tok()["surface"])),
                                      name=f"{g} average", showlegend=False, hoverinfo="skip"))
-    style(fig, height=560, legend=colour_by == "Gas", x_title="PC1", y_title="PC2", grid_x=True)
+    if not animate:
+        style(fig, height=560, legend=colour_by == "Gas", x_title="PC1", y_title="PC2", grid_x=True)
     figure(fig, shown.groupby(["batch", "gas"])[["PC1", "PC2"]].mean().round(2), table_label="View the batch averages as a table")
     callout(f"This is a 2-D map of the 128 numbers (PC1 and PC2 together keep **{sum(var) * 100:.0f}%** of the information). The map was built **only from "
             "batches 1-3**, then every batch was placed on it. In the training batches the gases form fairly separate bands. In later batches the gases "

@@ -1,8 +1,5 @@
 # Drift-Robust Gas Classification Using Machine Learning — Project Plan (v2)
 
-**Course:** 24DS601 – Machine Learning, M.Tech Data Science, Amrita Vishwa Vidyapeetham, Coimbatore
-**Student:** Kiran Gautham (CB.AI.P2DSC26013)
-**GitHub:** https://github.com/kirangautham-82899/Drift-Robust-Gas-Classification.git
 
 ---
 

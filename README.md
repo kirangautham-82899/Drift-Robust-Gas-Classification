@@ -1,7 +1,6 @@
 ﻿# Drift-Robust Gas Classification Using Machine Learning
 
-M.Tech Data Science, 24DS601 - Machine Learning, Amrita Vishwa Vidyapeetham, Coimbatore.
-Kiran Gautham (CB.AI.P2DSC26013)
+A machine-learning case study on sensor drift.
 
 ## What this project is about
 
@@ -146,7 +145,13 @@ streamlit run app/app.py
 | ![Per-batch drift](docs/screenshots/per-batch-drift.jpg) | ![Confusion matrices](docs/screenshots/confusion-matrices.jpg) |
 | ![Random vs time-aware](docs/screenshots/random-vs-time-aware.jpg) | ![Live demo](docs/screenshots/live-demo.jpg) |
 
-Design notes: it works in light and dark mode and on a phone; the colours are a validated colour-blind-safe palette (a gas or
+**Put it online.** The app runs on [Streamlit Community Cloud](https://share.streamlit.io) (free; Vercel and other serverless
+hosts cannot run a Streamlit server). Push this repository to GitHub, choose **Create app → Deploy a public app from GitHub**,
+pick the repository and branch, set the main file path to `app/app.py`, open **Advanced settings** and choose Python 3.11, then
+deploy. The cloud installs the lean `app/requirements.txt` and reads the theme from `.streamlit/config.toml`; you can pick a custom
+`*.streamlit.app` address in the same dialog.
+
+Design notes: it uses one light theme and works on a phone; the colours are a validated colour-blind-safe palette (a gas or
 model keeps the same colour on every page, and the PCA map also uses marker shapes); heatmaps use one blue ramp; every chart has
 a "View as a table" twin so no value depends on hovering; every chart has a plain-English "What to notice" box with numbers
 computed from the data. The first page load takes a few seconds while the dataset is read.

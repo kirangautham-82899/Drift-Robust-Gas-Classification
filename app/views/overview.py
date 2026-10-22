@@ -3,22 +3,29 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+import html
+
+import plotly.graph_objects as go
 import streamlit as st
-from common import batch_counts, load_data, read_result
-from ui import batch_strip, callout, cards, hero, kpis, link, section, stepper
+from common import ANALYSIS_MODELS, GASES, batch_counts, load_data, read_result
+from design import gas_color, model_color, rgba, style, tok
+from ui import batch_strip, callout, cards, figure, hero, html_block, kpis, link, section, stepper
 
 df = load_data()
 counts = batch_counts()
 summary = read_result("step12_summary.csv").rename(columns={"Unnamed: 0": "model"}).set_index("model")
 near_far = read_result("step10_near_far.csv").set_index("model")
 exams = read_result("step11_accuracy_table.csv").set_index("model")
+ci = read_result("step10_per_batch_ci.csv")
+per = ci[ci["group"].str.startswith("batch")].assign(batch=lambda d: d["group"].str.split().str[1].astype(int),
+                                                      accuracy=lambda d: d["accuracy"].astype(float) * 100)
 
 svm, vote = summary.loc["SVM"], summary.loc["Soft vote"]
 nf = near_far.loc["SVM"]
 random_claim = float(exams.loc["SVM", "random, same sizes"])
 honest = float(exams.loc["SVM", "time-aware (A)"])
 
-hero("M.Tech Data Science · 24DS601 Machine Learning",
+hero("Machine learning case study",
      "Can a model keep recognising gases as its sensors age?",
      "Gas sensors drift: months later the same gas gives different readings. We trained classical machine-learning models on early "
      "recordings and tested them on later ones to measure how much accuracy is lost, and why a random split would hide it.",
@@ -33,6 +40,55 @@ kpis([
          tag=f"inflated by {random_claim - honest:.1f} points", tone="warn"),
 ])
 
+# ----------------------------------------------------------------------------------------------- drift at a glance
+section("Watch the accuracy fall", "Every model was trained on batches 1-3. Pick models to compare them on each later batch; "
+        "click a legend entry to hide a line.")
+picked = st.pills("Models", [m for m in ANALYSIS_MODELS if m != "SVM (untuned)"], selection_mode="multi",
+                  default=["SVM", "Soft vote", "Random Forest + PCA"], label_visibility="collapsed", key="ov_models")
+picked = picked or ["SVM"]
+t = tok()
+fig = go.Figure()
+fig.add_vrect(x0=3.5, x1=6.5, fillcolor=rgba("#4f46e5", 0.05), line_width=0, annotation_text="near batches", annotation_position="inside bottom",
+              annotation_font=dict(color=t["muted"], size=12))
+fig.add_vrect(x0=7.5, x1=10.5, fillcolor=rgba("#7c3aed", 0.07), line_width=0, annotation_text="far batches", annotation_position="inside bottom",
+              annotation_font=dict(color=t["muted"], size=12))
+for m in picked:
+    d = per[per["model"] == m].sort_values("batch")
+    c = model_color(m)
+    fig.add_trace(go.Scatter(x=d["batch"], y=d["accuracy"], name=m, mode="lines+markers", line=dict(color=c, width=3),
+                             marker=dict(color=c, size=10, line=dict(color=t["surface"], width=2.5)),
+                             hovertemplate=f"<b>{html.escape(m)}</b><br>batch %{{x}}: %{{y:.1f}}%<extra></extra>"))
+style(fig, height=400, x_title="Test batch (time order)", y_title="Accuracy (%)", hover="x unified")
+fig.update_xaxes(dtick=1, range=[3.5, 10.5])
+fig.update_yaxes(range=[20, 100])
+figure(fig, per[per["model"].isin(picked)].pivot(index="batch", columns="model", values="accuracy").round(1), key="ov_chart")
+
+# ----------------------------------------------------------------------------------------------- batch explorer
+section("Explore a batch", "Click a batch to see its size, its mix of gases and how the best models did on it.")
+batch = st.segmented_control("Batch", list(range(1, 11)), default=10, format_func=lambda b: f"Batch {b}",
+                             label_visibility="collapsed", key="ov_batch") or 10
+rows = df[df["batch"] == batch]
+mix = rows["gas"].value_counts().reindex(GASES, fill_value=0)
+share = mix / mix.sum() * 100
+role = ('<span class="role train">● training batch</span>' if batch <= 3 else
+        f'<span class="role test">● test batch · {"near" if batch <= 6 else "far" if batch >= 8 else "middle"}</span>')
+bar = "".join(f'<span title="{g} {p:.0f}%" style="flex:{p:.2f};background:{gas_color(g)}"></span>' for g, p in share.items() if p > 0)
+legend = "".join(f'<span><b style="background:{gas_color(g)}"></b>{g} {p:.0f}%</span>' for g, p in share.items())
+if batch <= 3:
+    score = ('<div class="h">Model accuracy</div><div class="v">—</div><div class="s">The models learned from this batch, '
+             'so it is not used to test them.</div>')
+else:
+    acc = per[per["batch"] == batch].set_index("model")["accuracy"]
+    best_model = acc.drop("SVM (untuned)", errors="ignore").idxmax()
+    score = (f'<div class="h">SVM accuracy</div><div class="v">{acc["SVM"]:.1f}%</div>'
+             f'<div class="s">Best on this batch: <strong>{html.escape(best_model)}</strong> ({acc[best_model]:.1f}%)</div>'
+             f'<div class="meter"><span style="width:{acc["SVM"]:.1f}%"></span></div>')
+html_block(f'<div class="bx"><div class="pane"><div class="h">Recordings</div><div class="v">{len(rows):,}</div>'
+           f'<div class="s">{int(counts.loc[batch, "Toluene removed"])} Toluene recordings removed</div>{role}</div>'
+           f'<div class="pane"><div class="h">Gas mix</div><div class="mix">{bar}</div><div class="mixlegend">{legend}</div></div>'
+           f'<div class="pane">{score}</div></div>')
+
+# ----------------------------------------------------------------------------------------------- story
 section("The story in three steps")
 cols = cards([
     ("Sensors age", "The same gas produces different numbers months later. Open the drift viewer to see it in the raw readings and on a map."),
@@ -58,7 +114,8 @@ stepper([("Load", "10 batch files, 128 numbers per recording"), ("Clean", "Tolue
 section("What we found", "The short version; every page has the evidence.")
 callout(f"The best single model, the SVM, is right **{svm['mean accuracy %']:.1f}%** of the time on later batches. A plain average of five models "
         f"(the soft vote) scores **{vote['mean accuracy %']:.1f}% ± {vote['std (points)']:.2f}**, but mostly because of one batch, so we do not call it "
-        "a general win. Squeezing the features (PCA, LDA), boosting, tuning and stacking did not give a clear improvement over the SVM.")
+        "a general win. Squeezing the features (PCA, LDA), boosting, tuning and stacking did not give a clear improvement over the SVM.",
+        title="In one paragraph")
 
 section("Explore")
 a, b, c = st.columns(3)
@@ -72,12 +129,10 @@ with c:
     link("views/confusion_matrices.py", "Confusion matrices: where mistakes happen")
     link("views/live_demo.py", "Live demo: try a recording yourself")
 
-with st.expander("Why is Toluene removed?"):
+with st.expander("Why is Toluene removed?", icon=":material/help:"):
     st.markdown(
         "Toluene is missing from batches 3, 4 and 5 and has only 5 samples in batch 2, so the set of gases would change from batch to batch. "
-        "Removing it (on the teacher's instruction) keeps the same five gases in every batch. The original files are never changed; Toluene is "
+        "Removing it keeps the same five gases in every batch. The original files are never changed; Toluene is "
         "dropped in code."
     )
     st.dataframe(counts, width="stretch")
-
-st.caption("Kiran Gautham (CB.AI.P2DSC26013) · Amrita Vishwa Vidyapeetham, Coimbatore · Data: UCI Gas Sensor Array Drift Dataset (Vergara et al., 2012)")

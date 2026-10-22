@@ -12,7 +12,8 @@ import streamlit as st
 from common import DEMO_MODELS, GASES, MAX_UPLOAD_ROWS, demo_predict, load_data, parse_upload, read_result
 from design import gas_color, style, tok
 from src import data_loader as dl
-from ui import callout, caution, figure, hero, html_block, kpis, section
+from design import rgba
+from ui import callout, caution, figure, hero, html_block, kpis, meter, section, vote_cards
 
 hero("Try it yourself", "Which gas is this recording?",
      "Pick a recording from the later batches, or upload your own, and see what a model trained on **batches 1-3 only** makes of it. "
@@ -76,7 +77,7 @@ if source.startswith("The later"):
     verdict = '<span class="verdict ok">✓ Correct</span>' if correct else '<span class="verdict no">✗ Wrong</span>'
     with left:
         html_block(
-            f'<div class="result"><div class="small">{html.escape(model)} says this is</div>'
+            f'<div class="result" style="--glow:{rgba(gas_color(predicted), 0.35)}"><div class="small">{html.escape(model)} says this is</div>'
             f'<div class="big"><span class="swatch" style="background:{gas_color(predicted)}"></span>{html.escape(predicted)}</div>'
             f'<div class="small" style="margin-top:.5rem">The recording really is: '
             f'<strong>{html.escape(true_gas)}</strong></div>{verdict}</div>')
@@ -92,10 +93,13 @@ if source.startswith("The later"):
     for m in DEMO_MODELS:
         lab, _ = demo_predict(m, X)
         pg = GASES[int(lab[0]) - 1]
-        votes.append({"model": m, "predicts": pg, "result": "✓ correct" if pg == true_gas else "✗ wrong"})
-    vote_frame = pd.DataFrame(votes)
-    n_right = int((vote_frame["result"] == "✓ correct").sum())
-    st.dataframe(vote_frame, width="stretch", hide_index=True)
+        votes.append({"model": m, "predicts": pg, "correct": pg == true_gas})
+    n_right = sum(v["correct"] for v in votes)
+    meter(n_right / len(votes), f"**{n_right} of {len(votes)}** models agree with the true gas")
+    vote_cards(votes, {g: gas_color(g) for g in GASES})
+    with st.expander("View the votes as a table", icon=":material/table_view:"):
+        st.dataframe(pd.DataFrame([{"model": v["model"], "predicts": v["predicts"], "result": "✓ correct" if v["correct"] else "✗ wrong"}
+                                   for v in votes]), width="stretch", hide_index=True)
     callout(f"{n_right} of the {len(DEMO_MODELS)} models identify this recording correctly. A model that is right on one recording can be wrong on the "
             "next: later batches have drifted away from what the models saw in training, and accuracy changes from batch to batch "
             "(see the Per-batch drift page).")

@@ -34,8 +34,11 @@ ANALYSIS_MODELS = ["Soft vote", "SVM", "SVM (untuned)", "Stack (LR)", "Random Fo
                    "AdaBoost + PCA", "kNN + PCA", "Naive Bayes + PCA", "Decision Tree"]
 
 
+@st.cache_data(show_spinner=False)
 def read_result(name):
-    """Read a CSV from results/. keep_default_na=False: pandas would otherwise turn the text 'None' into NaN."""
+    """Read a CSV from results/ (cached: every page re-reads them on each click).
+
+    keep_default_na=False: pandas would otherwise turn the text 'None' into NaN."""
     return pd.read_csv(RESULTS / name, keep_default_na=False)
 
 

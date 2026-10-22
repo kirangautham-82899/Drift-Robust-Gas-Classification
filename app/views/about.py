@@ -24,7 +24,7 @@ callout(f"Gas-sensor drift is **real and large**: the best single model (SVM) fa
 
 section("What this does not tell you", "Read the numbers with these limits in mind.")
 limits = [
-    ("Five gases only", "Toluene was excluded on the teacher's instruction, so the results apply to Ethanol, Ethylene, Ammonia, Acetaldehyde and Acetone."),
+    ("Five gases only", "Toluene was excluded by the project scope, so the results apply to Ethanol, Ethylene, Ammonia, Acetaldehyde and Acetone."),
     ("The Dennler baseline check is a proxy", "The raw pre-exposure baseline of Dennler et al. (2022) is not in this dataset version, so we use proxies and label them as proxies."),
     ("Small, uneven batches", "Batches 4, 5, 8 and 9 have 161-369 recordings (as few as 12 per gas), so their individual results are noisy, and the gas mix differs between batches."),
     ("Gas concentration is missing", "Concentration changed between batches and is not in this dataset version, so it cannot be separated from sensor ageing."),
@@ -54,7 +54,7 @@ st.markdown(
     "- Scalers, PCA, LDA and tuning only ever see the training batches, and tests prove the test batches cannot change them.\n"
     "- This dashboard only displays results saved by those notebooks. Automated tests check that its pages run and that the numbers it shows match the saved results "
     "and the numbers in the project README.\n"
-    "- Code, notebooks, results and tests: [GitHub repository](https://github.com/kirangautham-82899/Drift-Robust-Gas-Classification)."
+    "- Code, notebooks, results and tests live in the project repository next to this dashboard."
 )
 
 section("Data and references")
@@ -66,4 +66,3 @@ st.markdown(
     "classification benchmarks. *Sensors and Actuators B: Chemical*, 361, 131668.\n"
     "4. Zhang, Y., et al. (2022). TDACNN: Target-domain-free domain adaptation CNN for drift compensation in gas sensors. *Sensors and Actuators B: Chemical*, 361, 131739."
 )
-st.caption("Kiran Gautham (CB.AI.P2DSC26013) · M.Tech Data Science, 24DS601 Machine Learning · Amrita Vishwa Vidyapeetham, Coimbatore")
