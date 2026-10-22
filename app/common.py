@@ -7,7 +7,6 @@ Colours and page components live in design.py and ui.py.
 import sys
 from pathlib import Path
 
-import joblib
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -17,8 +16,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src import data_loader as dl   # noqa: E402
-from src import drift                # noqa: E402
-from src import stacking             # noqa: E402
+# src.drift, src.stacking and joblib pull in scikit-learn (about 3 s to import), so they are imported inside the
+# functions that need them: pages without models open without paying for it.
 
 RESULTS = ROOT / "results"
 
@@ -42,9 +41,17 @@ def read_result(name):
     return pd.read_csv(RESULTS / name, keep_default_na=False)
 
 
+RAW_CACHE = RESULTS / "dashboard_raw.pkl.xz"
+
+
 @st.cache_data(show_spinner="Loading the dataset ...")
 def load_raw():
-    """All 13,910 samples of the 10 batches (6 gases)."""
+    """All 13,910 samples of the 10 batches (6 gases).
+
+    Read from a pre-parsed copy (written by scripts/make_dashboard_cache.py, about 3x faster than parsing the text files);
+    a test checks it equals a fresh parse. Falls back to parsing the raw files when the copy is missing."""
+    if RAW_CACHE.exists():
+        return pd.read_pickle(RAW_CACHE)
     return dl.load_all()
 
 
@@ -66,6 +73,7 @@ def batch_counts():
 @st.cache_data(show_spinner="Fitting PCA on the training batches ...")
 def pca_projection():
     """2-D PCA picture. The scaler and PCA are fitted on batches 1-3 only, then applied to every batch."""
+    from src import drift
     df = load_data()
     scaler, pca = drift.fit_scaler_pca(df, n_components=2)
     coords = drift.project(df, scaler, pca)
@@ -77,6 +85,7 @@ def pca_projection():
 @st.cache_data(show_spinner="Measuring how far each gas has moved ...")
 def centroid_shift():
     """Distance of each gas's batch average from its training average (see Step 3)."""
+    from src import drift
     df = load_data()
     scaler, _ = drift.fit_scaler_pca(df)
     table, between = drift.centroid_shift(df, scaler)
@@ -140,6 +149,7 @@ def analysis_models():
 
 @st.cache_resource(show_spinner="Loading the saved models ...")
 def load_models():
+    import joblib
     loaded = {label: joblib.load(path) for label, path in analysis_models().items()}
     loaded["Stack (LR)"] = joblib.load(RESULTS / "models" / "stack_protocolA.joblib")
     return loaded
@@ -160,6 +170,7 @@ def compute_predictions():
     out = test[["batch", "label"]].copy()
     for label, model in models.items():
         out[label] = model.predict(X)
+    from src import stacking
     out["Soft vote"] = stacking.soft_vote(models["Stack (LR)"], X)
     return out
 
@@ -192,6 +203,7 @@ def demo_predict(model_name, X):
     """
     models = load_models()
     stack = models["Stack (LR)"]
+    from src import stacking
     base = dict(zip(stacking.BASE_FAMILIES, stack.estimators_))      # fitted base pipelines, in the stack's order
     if model_name == "Stack (LR)":
         return stack.predict(X), stack.predict_proba(X)

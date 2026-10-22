@@ -250,6 +250,11 @@ def test_saved_model_predictions_reproduce_the_step10_accuracies():
         assert (preds[model] == preds["label"]).mean() == pytest.approx(acc, abs=0.0006)    # CSV rounded to 4 decimals
 
 
+def test_raw_data_cache_matches_a_fresh_parse():
+    assert common.RAW_CACHE.exists(), "run scripts/make_dashboard_cache.py"
+    assert pd.read_pickle(common.RAW_CACHE).equals(common.dl.load_all())
+
+
 def test_confusion_helper_counts_every_recording():
     preds = common.predictions()
     cm = common.confusion(preds["label"], preds["SVM"])
