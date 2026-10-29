@@ -91,6 +91,18 @@ def test_adaptation_table_matches_step13():
     assert str(s.loc["MLP (strict)", "wins on validation"]) == str(s.loc["SVM + CORAL", "wins on validation"]) == "False"
 
 
+def test_label_strategy_claims_match_step13():
+    s = read("step13_label_strategies_summary.csv").set_index("method")
+    assert len(s) == 13
+    ref = s.loc["random labels, SVM"]
+    assert (f"{float(ref['validation accuracy %']):.1f}% on validation and {float(ref['test accuracy %']):.1f}% on test"
+            in README)
+    others = s.drop(index="random labels, SVM")
+    assert (others["validation change (points)"].astype(float) <= 0.05).all()       # "never beat that on validation"
+    assert f"reach {others['test accuracy %'].astype(float).max():.1f}% on test" in README
+    assert (s["fair improvement"].astype(str) == "False").all()
+
+
 def test_readme_has_required_sections_and_no_viva_sheet():
     for heading in ["## Main results", "## Conclusions", "## Limitations", "## How to reproduce", "## Where each number comes from"]:
         assert heading in README, heading

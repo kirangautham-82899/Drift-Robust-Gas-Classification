@@ -157,6 +157,11 @@ points with no test labels. The MLP and CORAL look better on test but worse on v
 The gain is uneven: per-batch scaling loses 25 points on batch 8, which is 52% Acetone, because it assumes a balanced
 gas mix. A few labels fix that and give the largest gains (tier-3 rows: mean of 10 seeds).
 
+**Using the same labels more cleverly did not help.** With 25 random labels per new batch the SVM scores 96.2% on
+validation and 92.1% on test. Labelling the recordings the model is least sure about (active learning), weighting the
+labels, self-training, the soft vote and four other SVM settings never beat that on validation. Some reach 93.0% on
+test, but only a choice made by looking at the test batches would pick them. More labels is what helps.
+
 <p align="center"><img src="results/step13_methods.png" alt="Drift adaptation, validation vs test" width="80%"></p>
 
 ## Conclusions
@@ -241,7 +246,7 @@ python scripts/run_step9_stacking.py   # about 11 min, then notebook 09
 #                                        notebook 10 (under a minute)
 python scripts/run_step11_leakage.py   # about 20 min, then notebook 11
 python scripts/run_step12_repeats.py   # about 6 min,  then notebook 12
-python scripts/run_step13_adaptation.py # about 1 min, then notebook 13 (bonus)
+python scripts/run_step13_adaptation.py # about 5 min, then notebook 13 (bonus)
 python scripts/make_dashboard_cache.py # optional: saves predictions so the dashboard opens faster
 ```
 
@@ -269,6 +274,7 @@ On Windows, if pip fails with `CERTIFICATE_VERIFY_FAILED`, add `--use-feature=tr
 | Random vs time-aware split | `results/step11_accuracy_table.csv` | `11_leakage_check` |
 | Headline mean ± std over seeds | `results/step12_summary.csv` | `12_repeated_runs` |
 | Bonus drift adaptation | `results/step13_summary.csv` | `13_drift_adaptation` |
+| Bonus: using 25 labels per batch | `results/step13_label_strategies_summary.csv` | `13_drift_adaptation` |
 
 </details>
 

@@ -3,7 +3,7 @@
 Tiers (what a method may use from a test batch):
   1 strict       nothing (the setting of Steps 5-12)
   2 unlabelled   the batch's sensor readings, never its gas labels
-  3 few labels   a few labelled recordings per gas from the batch; those recordings are not scored
+  3 few labels   a few labelled recordings from the batch (per gas, or a fixed budget); those are not scored
 
 Tier 2 and 3 numbers answer a different question from protocol A, so they are reported separately from the headline.
 Every method returns one predicted gas per test row, and test batches are handled in time order, so a batch is never
@@ -103,18 +103,73 @@ def predict_few_labels(make_model, X_tr, y_tr, b_tr, X_te, b_te, y_te, labelled)
     return pred
 
 
+def predict_label_budget(make_model, X_tr, y_tr, b_tr, X_te, b_te, y_te, budget, strategy="random", seed=0,
+                         label_weight=1.0, old_weight=1.0, pseudo=0.0):
+    """Tier 3 with a fixed number of labels per batch, chosen without knowing the gas. Per-batch standardisation; test
+    batches in time order. Returns (predictions, boolean mask of the labelled rows).
+
+    strategy: 'random', 'uncertain' (lowest margin between the two most likely gases under the current model) or
+              'mixed' (half uncertain, half random).
+    label_weight / old_weight: sample weights of the new labels / of the training batches (needs a model that takes
+              sample_weight when either is not 1).
+    pseudo: share of each batch's unlabelled rows, the most confident, added as pseudo-labels for later batches.
+    Only y_te of the labelled rows is ever read.
+    """
+    rng = np.random.default_rng(seed)
+    Z_tr, Z_te = per_batch_standardise(X_tr, b_tr), per_batch_standardise(X_te, b_te)
+    y_te = np.asarray(y_te)
+    X_pool, y_pool, w_pool = Z_tr, np.asarray(y_tr), np.full(len(y_tr), old_weight)
+    weighted = label_weight != 1.0 or old_weight != 1.0
+
+    def fit(X, y, w):
+        return make_model().fit(X, y, sample_weight=w) if weighted else make_model().fit(X, y)
+
+    pred = np.empty(len(Z_te), dtype=y_pool.dtype)
+    labelled = np.zeros(len(Z_te), dtype=bool)
+    for b in np.unique(b_te):
+        rows = np.flatnonzero(b_te == b)
+        if strategy == "random":
+            pick = rng.choice(rows, budget, replace=False)
+        else:
+            p = np.sort(fit(X_pool, y_pool, w_pool).predict_proba(Z_te[rows]), axis=1)
+            by_margin = rows[np.argsort(p[:, -1] - p[:, -2], kind="stable")]
+            if strategy == "uncertain":
+                pick = by_margin[:budget]
+            elif strategy == "mixed":
+                unsure = by_margin[:budget // 2]
+                pick = np.concatenate([unsure, rng.choice(np.setdiff1d(rows, unsure), budget - len(unsure), replace=False)])
+            else:
+                raise ValueError("strategy must be 'random', 'uncertain' or 'mixed'")
+        labelled[pick] = True
+        X_pool, y_pool = np.vstack([X_pool, Z_te[pick]]), np.concatenate([y_pool, y_te[pick]])
+        w_pool = np.concatenate([w_pool, np.full(len(pick), label_weight)])
+        model = fit(X_pool, y_pool, w_pool)
+        proba = model.predict_proba(Z_te[rows])
+        pred[rows] = model.classes_[proba.argmax(axis=1)]
+        if pseudo:
+            free = ~labelled[rows]
+            sure = free & (proba.max(axis=1) >= np.quantile(proba.max(axis=1)[free], 1 - pseudo))
+            X_pool, y_pool = np.vstack([X_pool, Z_te[rows][sure]]), np.concatenate([y_pool, pred[rows][sure]])
+            w_pool = np.concatenate([w_pool, np.ones(sure.sum())])
+    return pred, labelled
+
+
 # ---------------------------------------------------------------------------------------------- scoring
-def evaluate(method, make_model, df, train_batches, test_batches, n_per_gas=0, seed=0):
+def evaluate(method, make_model, df, train_batches, test_batches, n_per_gas=0, seed=0, budget=0, **label_options):
     """Run one method on one split. Returns metric rows per test batch plus a 'pooled' row when there are several.
 
-    For tier 3 (n_per_gas > 0) the labelled recordings are left out of the scores.
+    For tier 3 (n_per_gas > 0, or budget > 0 with predict_label_budget's options) the labelled recordings are left out
+    of the scores.
     """
     train = df[df["batch"].isin(train_batches)]
     test = df[df["batch"].isin(test_batches)]
     X_tr, y_tr, b_tr = train[FEATURE_COLS].to_numpy(float), train["label"].to_numpy(), train["batch"].to_numpy()
     X_te, y_te, b_te = test[FEATURE_COLS].to_numpy(float), test["label"].to_numpy(), test["batch"].to_numpy()
 
-    if n_per_gas:
+    if budget:
+        pred, labelled = predict_label_budget(make_model, X_tr, y_tr, b_tr, X_te, b_te, y_te, budget, seed=seed,
+                                              **label_options)
+    elif n_per_gas:
         labelled = pick_labelled(y_te, b_te, n_per_gas, seed)
         pred = predict_few_labels(make_model, X_tr, y_tr, b_tr, X_te, b_te, y_te, labelled)
     else:

@@ -126,3 +126,55 @@ def test_evaluate_strict_trains_on_training_batches_only(clean):
     m = ad.evaluate(ad.predict_strict, Spy, clean, (1, 2, 3), (4, 5, 6))
     assert Spy.fitted_sizes == [3196]
     assert m.set_index("test_batch").loc["pooled", "n_test"] == 161 + 197 + 1833
+
+
+# ------------------------------------------------------------------------------------------------ fixed label budget
+from sklearn.svm import SVC   # noqa: E402
+
+
+def svm_proba():
+    return SVC(C=100, gamma=0.01, probability=True, random_state=0)
+
+
+@pytest.mark.parametrize("strategy", ["random", "uncertain", "mixed"])
+def test_label_budget_labels_exactly_budget_rows_per_batch(small, strategy):
+    X_tr, y_tr, b_tr, X_te, y_te, b_te = small
+    _, labelled = ad.predict_label_budget(svm_proba, X_tr, y_tr, b_tr, X_te, b_te, y_te, 10, strategy=strategy)
+    assert all(labelled[b_te == b].sum() == 10 for b in np.unique(b_te))
+
+
+@pytest.mark.parametrize("options", [{"strategy": "random"}, {"strategy": "uncertain", "pseudo": 0.5},
+                                     {"strategy": "mixed", "label_weight": 5.0, "old_weight": 0.3}])
+def test_label_budget_reads_only_the_labelled_recordings(small, options):
+    X_tr, y_tr, b_tr, X_te, y_te, b_te = small
+    p, labelled = ad.predict_label_budget(svm_proba, X_tr, y_tr, b_tr, X_te, b_te, y_te, 10, **options)
+    y_scrambled = y_te.copy()
+    y_scrambled[~labelled] = np.random.default_rng(0).permutation(y_scrambled[~labelled])
+    q, labelled2 = ad.predict_label_budget(svm_proba, X_tr, y_tr, b_tr, X_te, b_te, y_scrambled, 10, **options)
+    assert (labelled == labelled2).all() and (p == q).all()
+
+
+def test_label_budget_never_lets_a_later_batch_change_an_earlier_one(small):
+    X_tr, y_tr, b_tr, X_te, y_te, b_te = small
+    p, _ = ad.predict_label_budget(svm_proba, X_tr, y_tr, b_tr, X_te, b_te, y_te, 10, strategy="uncertain", pseudo=0.5)
+    y_bad, X_bad = y_te.copy(), X_te.copy()
+    y_bad[b_te == 5] = 1
+    X_bad[b_te == 5] = X_bad[b_te == 5][::-1] * 3
+    q, _ = ad.predict_label_budget(svm_proba, X_tr, y_tr, b_tr, X_bad, b_te, y_bad, 10, strategy="uncertain", pseudo=0.5)
+    assert (p[b_te < 5] == q[b_te < 5]).all()
+
+
+def test_uncertain_strategy_picks_the_lowest_margin_rows(small):
+    X_tr, y_tr, b_tr, X_te, y_te, b_te = small
+    one = b_te == 3
+    _, labelled = ad.predict_label_budget(svm_proba, X_tr, y_tr, b_tr, X_te[one], b_te[one], y_te[one], 10,
+                                          strategy="uncertain")
+    model = svm_proba().fit(ad.per_batch_standardise(X_tr, b_tr), y_tr)
+    p = np.sort(model.predict_proba(ad.per_batch_standardise(X_te[one], b_te[one])), axis=1)
+    margin = p[:, -1] - p[:, -2]
+    assert margin[labelled].max() <= margin[~labelled].min()
+
+
+def test_evaluate_with_a_budget_scores_only_unlabelled_rows(clean):
+    m = ad.evaluate(None, svm_proba, clean, (1, 2, 3), (4, 5), budget=20, strategy="random")
+    assert m.set_index("test_batch").loc["pooled", "n_test"] == 161 + 197 - 40
