@@ -78,6 +78,19 @@ def test_tuning_and_validation_claims_match_step8():
     assert f"{(both['val'] - both['test']).mean() * 100:.1f} points too optimistic" in README
 
 
+def test_adaptation_table_matches_step13():
+    s = read("step13_summary.csv").set_index("method")
+    assert len(s) == 8
+    for m in s.index:
+        x = s.loc[m]
+        expected = (f"| {m} | {x['tier']} | {float(x['validation accuracy %']):.1f}% | {float(x['test accuracy %']):.1f}% "
+                    f"| {float(x['batch 10 accuracy %']):.1f}% |")
+        assert row(expected) in README, expected
+    best = s.loc["SVM + per-batch standardisation"]
+    assert str(best["wins on validation"]) == "True" and f"+{float(best['test change (points)']):.1f}" in README
+    assert str(s.loc["MLP (strict)", "wins on validation"]) == str(s.loc["SVM + CORAL", "wins on validation"]) == "False"
+
+
 def test_readme_has_required_sections_and_no_viva_sheet():
     for heading in ["## Main results", "## Conclusions", "## Limitations", "## How to reproduce", "## Where each number comes from"]:
         assert heading in README, heading

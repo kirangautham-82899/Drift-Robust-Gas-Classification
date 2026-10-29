@@ -32,9 +32,10 @@ We trained classical models on the **first three batches** and tested them on th
 | 📉 **90.3% → 55.4%** | the SVM on batches close to training vs. batches furthest away |
 | 🎭 **97.2%** | what the same SVM *appears* to score with a random split; it hides the drift |
 | 🔁 **88.6%** | with recent labelled data (retraining before each batch) |
+| 🧪 **79.2% / 91.0%** | bonus: rescaling each new batch on its own (no labels) / plus 5 labels per gas per batch |
 
 **Short answer: no, not fully.** Drift costs 11-35 points of accuracy, and no classical trick tested here (PCA, LDA,
-boosting, tuning, stacking) clearly fixes it.
+boosting, tuning, stacking) clearly fixes it. Using the new batches' own readings, or a few of their labels, does help.
 
 ## How we test fairly
 
@@ -132,6 +133,32 @@ so it is kept out of the headline.
 
 </details>
 
+### Bonus: drift adaptation (Step 13)
+
+What if a method may use something from each new batch? **Tier 2** methods use the batch's sensor readings but never its
+gas labels; **tier 3** methods also get a few labelled recordings per gas, which are left out of the score. All use the
+tuned SVM. A method counts as an improvement only if it also beats the strict SVM on the Step 8 validation folds
+(batches 2 and 3), so nothing is chosen by looking at the test batches. These numbers use information protocol A
+forbids, so they are kept apart from the headline.
+
+| Method | Tier | Validation | Test, batches 4-10 | Batch 10 |
+|---|---|---|---|---|
+| SVM (strict) | 1 | 88.6% | 73.2% | 49.6% |
+| MLP (strict) | 1 | 80.5% | 75.6% | 58.6% |
+| SVM + CORAL | 2 | 80.3% | 77.4% | 52.7% |
+| SVM + per-batch standardisation | 2 | 90.6% | 79.2% | 63.3% |
+| SVM + per-batch std + self-training | 2 | 90.5% | 80.0% | 65.2% |
+| SVM + per-batch std + 3 labels per gas | 3 | 95.3% | 89.1% | 78.5% |
+| SVM + per-batch std + 5 labels per gas | 3 | 96.2% | 91.0% | 82.2% |
+| SVM + per-batch std + 10 labels per gas | 3 | 97.1% | 94.6% | 89.9% |
+
+**Per-batch standardisation**, which scales each batch with its own mean and spread, is the fair tier-2 winner: +6.0
+points with no test labels. The MLP and CORAL look better on test but worse on validation, so they are not counted.
+The gain is uneven: per-batch scaling loses 25 points on batch 8, which is 52% Acetone, because it assumes a balanced
+gas mix. A few labels fix that and give the largest gains (tier-3 rows: mean of 10 seeds).
+
+<p align="center"><img src="results/step13_methods.png" alt="Drift adaptation, validation vs test" width="80%"></p>
+
 ## Conclusions
 
 1. **Drift is real and large.** The tuned SVM falls from 90.3% to 55.4%. Errors are structured: the SVM tends to label other
@@ -146,6 +173,8 @@ so it is kept out of the headline.
 5. **Stacking did not beat the best single model** (69.5% vs 73.2%).
 6. **Random splits mislead**: 96-99% instead of 50-73%, the drift disappears and the ranking changes.
 7. **Recent labels help most** (protocol C: 85-89%), but they cost labelling every new batch.
+8. **Adapting to each new batch helps** (bonus, Step 13): per-batch standardisation lifts the SVM to 79.2% without labels,
+   and 5 labels per gas per batch reach 91.0%, more than protocol C with far fewer labels.
 
 ## Interactive dashboard
 
@@ -212,6 +241,7 @@ python scripts/run_step9_stacking.py   # about 11 min, then notebook 09
 #                                        notebook 10 (under a minute)
 python scripts/run_step11_leakage.py   # about 20 min, then notebook 11
 python scripts/run_step12_repeats.py   # about 6 min,  then notebook 12
+python scripts/run_step13_adaptation.py # about 1 min, then notebook 13 (bonus)
 python scripts/make_dashboard_cache.py # optional: saves predictions so the dashboard opens faster
 ```
 
@@ -238,6 +268,7 @@ On Windows, if pip fails with `CERTIFICATE_VERIFY_FAILED`, add `--use-feature=tr
 | Intervals, near vs far, confusion matrices | `results/step10_*.csv` | `10_drift_analysis` |
 | Random vs time-aware split | `results/step11_accuracy_table.csv` | `11_leakage_check` |
 | Headline mean ± std over seeds | `results/step12_summary.csv` | `12_repeated_runs` |
+| Bonus drift adaptation | `results/step13_summary.csv` | `13_drift_adaptation` |
 
 </details>
 
@@ -251,8 +282,8 @@ app/          Streamlit dashboard (app.py, design.py, ui.py, motion.js, views/)
 data_raw/     original batch files, never modified
 notebooks/    one notebook per step, with results and explanations
 results/      saved tables, figures and trained models
-scripts/      long-running, restartable jobs (Steps 8, 9, 11, 12)
-src/          loading, evaluation, models, tuning, stacking, analysis
+scripts/      long-running, restartable jobs (Steps 8, 9, 11, 12, 13)
+src/          loading, evaluation, models, tuning, stacking, analysis, adaptation
 tests/        data-integrity, leakage, dashboard and README-number checks
 ```
 

@@ -128,6 +128,10 @@ Ask the teacher before B2: these methods go beyond the Zeroth review objectives.
 | **B3** | **Tier 3 (light supervision):** rolling retraining, recency weighting, a few labelled samples from the new batch, self-training |
 | **B4** | Tier 1 → 2 → 3 summary graph; optional appendix with Toluene included as a sensitivity check |
 
+**Status:** B2 and B3 are done in Step 13 (`notebooks/13_drift_adaptation.ipynb`, `src/adaptation.py`): per-batch
+standardisation, CORAL, self-training and a few labels per gas, with a tier 1 → 2 → 3 graph (`results/step13_methods.png`).
+Subspace alignment, recency weighting, B1 and the Toluene appendix were not done.
+
 ### Tiers (what the model may use from new batches)
 1. **Strict:** nothing. Train on early batches, test on later ones.
 2. **Unlabelled adaptation:** only the new batch's raw readings, no gas labels.
