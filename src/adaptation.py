@@ -78,15 +78,33 @@ def predict_self_training(make_model, X_tr, y_tr, b_tr, X_te, b_te, keep=0.5):
 
 
 def pick_labelled(y_te, b_te, n_per_gas, seed):
-    """Tier 3: choose n_per_gas random recordings of each gas in each test batch to be labelled (boolean mask)."""
+    """Tier 3: choose n_per_gas random recordings of each gas in each test batch to be labelled (boolean mask).
+
+    n_per_gas is one number for every gas, or a {gas: number} dict to label some gases more than others.
+    """
     rng = np.random.default_rng(seed)
     y_te, b_te = np.asarray(y_te), np.asarray(b_te)
     mask = np.zeros(len(y_te), dtype=bool)
     for b in np.unique(b_te):
         for gas in np.unique(y_te[b_te == b]):
             rows = np.flatnonzero((b_te == b) & (y_te == gas))
-            mask[rng.permutation(rows)[:n_per_gas]] = True
+            n = n_per_gas[gas] if isinstance(n_per_gas, dict) else n_per_gas
+            mask[rng.permutation(rows)[:n]] = True
     return mask
+
+
+def predict_pair_specialist(make_model, X_tr, y_tr, b_tr, X_te, b_te, pair=(1, 4), make_specialist=None):
+    """Tier 2: per-batch standardisation; a main model predicts every gas, then a second model trained only on the two
+    gases in `pair` (default Ethanol and Acetaldehyde) re-decides every row the main model gave to one of them."""
+    Z_tr, Z_te = per_batch_standardise(X_tr, b_tr), per_batch_standardise(X_te, b_te)
+    y_tr = np.asarray(y_tr)
+    pred = make_model().fit(Z_tr, y_tr).predict(Z_te)
+    in_pair = np.isin(y_tr, pair)
+    specialist = (make_specialist or make_model)().fit(Z_tr[in_pair], y_tr[in_pair])
+    redo = np.isin(pred, pair)
+    if redo.any():
+        pred[redo] = specialist.predict(Z_te[redo])
+    return pred
 
 
 def predict_few_labels(make_model, X_tr, y_tr, b_tr, X_te, b_te, y_te, labelled):
@@ -155,11 +173,13 @@ def predict_label_budget(make_model, X_tr, y_tr, b_tr, X_te, b_te, y_te, budget,
 
 
 # ---------------------------------------------------------------------------------------------- scoring
-def evaluate(method, make_model, df, train_batches, test_batches, n_per_gas=0, seed=0, budget=0, **label_options):
+def evaluate(method, make_model, df, train_batches, test_batches, n_per_gas=0, seed=0, budget=0, focus_gas=None,
+             **label_options):
     """Run one method on one split. Returns metric rows per test batch plus a 'pooled' row when there are several.
 
     For tier 3 (n_per_gas > 0, or budget > 0 with predict_label_budget's options) the labelled recordings are left out
-    of the scores.
+    of the scores. With focus_gas, every row also gets that gas's recall and precision ('focus_recall',
+    'focus_precision'; NaN where the batch has none of it).
     """
     train = df[df["batch"].isin(train_batches)]
     test = df[df["batch"].isin(test_batches)]
@@ -176,11 +196,19 @@ def evaluate(method, make_model, df, train_batches, test_batches, n_per_gas=0, s
         labelled = np.zeros(len(y_te), dtype=bool)
         pred = method(make_model, X_tr, y_tr, b_tr, X_te, b_te)
 
+    def scores(m):
+        out = compute_metrics(y_te[m], pred[m])
+        if focus_gas is not None:
+            is_gas, said_gas = y_te[m] == focus_gas, pred[m] == focus_gas
+            out["focus_recall"] = (said_gas & is_gas).sum() / is_gas.sum() if is_gas.any() else np.nan
+            out["focus_precision"] = (said_gas & is_gas).sum() / said_gas.sum() if said_gas.any() else np.nan
+        return out
+
     scored = ~labelled
     rows = []
     for b in sorted(set(b_te)):
         m = scored & (b_te == b)
-        rows.append({"test_batch": str(b), "n_test": int(m.sum()), **compute_metrics(y_te[m], pred[m])})
+        rows.append({"test_batch": str(b), "n_test": int(m.sum()), **scores(m)})
     if len(test_batches) > 1:
-        rows.append({"test_batch": "pooled", "n_test": int(scored.sum()), **compute_metrics(y_te[scored], pred[scored])})
+        rows.append({"test_batch": "pooled", "n_test": int(scored.sum()), **scores(scored)})
     return pd.DataFrame(rows)

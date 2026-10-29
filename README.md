@@ -162,6 +162,22 @@ validation and 92.1% on test. Labelling the recordings the model is least sure a
 labels, self-training, the soft vote and four other SVM settings never beat that on validation. Some reach 93.0% on
 test, but only a choice made by looking at the test batches would pick them. More labels is what helps.
 
+**The hardest gas, Acetaldehyde.** The strict SVM finds only 52.6% of it, and in batch 10 just 11.0%: there it calls
+most Acetaldehyde Ethanol. In the training data, the three closest pairs of gases all include Acetaldehyde, and it is
+the smallest class (11.9%). Recall = share of the real Acetaldehyde found; precision = how often "Acetaldehyde" is right.
+
+| Method | Acetaldehyde recall | Acetaldehyde precision | Recall, batch 10 | Accuracy, all gases |
+|---|---|---|---|---|
+| SVM (strict) | 52.6% | 57.2% | 11.0% | 73.2% |
+| SVM, Acetaldehyde weighted x3 | 50.0% | 54.9% | 8.7% | 72.5% |
+| SVM + per-batch standardisation | 33.2% | 73.9% | 19.2% | 79.2% |
+| SVM + per-batch std + Ethanol/Acetaldehyde specialist | 38.0% | 71.8% | 27.3% | 80.1% |
+| SVM + per-batch std + 10 labels per gas | 96.2% | 93.7% | 98.4% | 94.7% |
+| SVM + per-batch std + 10 per gas, 20 Acetaldehyde | 99.4% | 93.1% | 99.4% | 95.2% |
+
+Without labels nothing fixes it, and per-batch standardisation even makes it worse, although overall accuracy rises.
+Labels from the new batches do: 10 per gas plus 20 Acetaldehyde finds almost all of it (tier-3 rows: mean of 5 seeds).
+
 <p align="center"><img src="results/step13_methods.png" alt="Drift adaptation, validation vs test" width="80%"></p>
 
 ## Conclusions
@@ -246,7 +262,7 @@ python scripts/run_step9_stacking.py   # about 11 min, then notebook 09
 #                                        notebook 10 (under a minute)
 python scripts/run_step11_leakage.py   # about 20 min, then notebook 11
 python scripts/run_step12_repeats.py   # about 6 min,  then notebook 12
-python scripts/run_step13_adaptation.py # about 5 min, then notebook 13 (bonus)
+python scripts/run_step13_adaptation.py # about 6 min, then notebook 13 (bonus)
 python scripts/make_dashboard_cache.py # optional: saves predictions so the dashboard opens faster
 ```
 
@@ -275,6 +291,7 @@ On Windows, if pip fails with `CERTIFICATE_VERIFY_FAILED`, add `--use-feature=tr
 | Headline mean ± std over seeds | `results/step12_summary.csv` | `12_repeated_runs` |
 | Bonus drift adaptation | `results/step13_summary.csv` | `13_drift_adaptation` |
 | Bonus: using 25 labels per batch | `results/step13_label_strategies_summary.csv` | `13_drift_adaptation` |
+| Bonus: Acetaldehyde | `results/step13_acetaldehyde_summary.csv` | `13_drift_adaptation` |
 
 </details>
 

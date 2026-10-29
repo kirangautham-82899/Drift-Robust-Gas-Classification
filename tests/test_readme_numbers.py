@@ -103,6 +103,24 @@ def test_label_strategy_claims_match_step13():
     assert (s["fair improvement"].astype(str) == "False").all()
 
 
+def test_acetaldehyde_table_matches_step13():
+    s = read("step13_acetaldehyde_summary.csv").set_index("method")
+    shown = ["SVM (strict)", "SVM, Acetaldehyde weighted x3", "SVM + per-batch standardisation",
+             "SVM + per-batch std + Ethanol/Acetaldehyde specialist", "SVM + per-batch std + 10 labels per gas",
+             "SVM + per-batch std + 10 per gas, 20 Acetaldehyde"]
+    for m in shown:
+        x = {c: float(v) for c, v in s.loc[m].items() if c.endswith("%")}
+        expected = (f"| {m} | {x['Acetaldehyde recall %']:.1f}% | {x['Acetaldehyde precision %']:.1f}% "
+                    f"| {x['Acetaldehyde recall, batch 10 %']:.1f}% | {x['test accuracy %']:.1f}% |")
+        assert row(expected) in README, expected
+    strict, pbs = s.loc["SVM (strict)"], s.loc["SVM + per-batch standardisation"]
+    assert float(pbs["Acetaldehyde recall %"]) < float(strict["Acetaldehyde recall %"])      # "makes it worse"
+    assert float(pbs["test accuracy %"]) > float(strict["test accuracy %"])                  # "overall accuracy rises"
+    counts = read("step1_gas_counts_per_batch.csv").set_index("batch").loc[[1, 2, 3]].sum()
+    share = counts / counts.sum() * 100
+    assert share.idxmin() == "Acetaldehyde" and f"smallest class ({share.min():.1f}%)" in README
+
+
 def test_readme_has_required_sections_and_no_viva_sheet():
     for heading in ["## Main results", "## Conclusions", "## Limitations", "## How to reproduce", "## Where each number comes from"]:
         assert heading in README, heading

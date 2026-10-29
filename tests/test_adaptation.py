@@ -178,3 +178,39 @@ def test_uncertain_strategy_picks_the_lowest_margin_rows(small):
 def test_evaluate_with_a_budget_scores_only_unlabelled_rows(clean):
     m = ad.evaluate(None, svm_proba, clean, (1, 2, 3), (4, 5), budget=20, strategy="random")
     assert m.set_index("test_batch").loc["pooled", "n_test"] == 161 + 197 - 40
+
+
+# ------------------------------------------------------------------------------------------------ Acetaldehyde
+def test_pick_labelled_can_label_one_gas_more_than_the_others(small):
+    *_, y_te, b_te = small
+    mask = ad.pick_labelled(y_te, b_te, {1: 5, 2: 5, 3: 5, 4: 15, 5: 5}, seed=0)
+    for b in np.unique(b_te):
+        for gas in np.unique(y_te[b_te == b]):
+            n = ((b_te == b) & (y_te == gas)).sum()
+            assert mask[(b_te == b) & (y_te == gas)].sum() == min(15 if gas == 4 else 5, n)
+
+
+def test_pick_labelled_with_equal_dict_matches_a_single_number(small):
+    *_, y_te, b_te = small
+    same = {g: 5 for g in range(1, 6)}
+    assert (ad.pick_labelled(y_te, b_te, same, seed=3) == ad.pick_labelled(y_te, b_te, 5, seed=3)).all()
+
+
+def test_pair_specialist_only_changes_rows_given_to_the_pair(small):
+    X_tr, y_tr, b_tr, X_te, y_te, b_te = small
+    base = ad.predict_per_batch_std(knn, X_tr, y_tr, b_tr, X_te, b_te)
+    spec = ad.predict_pair_specialist(knn, X_tr, y_tr, b_tr, X_te, b_te, pair=(1, 4))
+    outside = ~np.isin(base, (1, 4))
+    assert (spec[outside] == base[outside]).all()
+    assert set(spec[~outside]) <= {1, 4}
+
+
+def test_focus_gas_scores_match_sklearn(clean):
+    from sklearn.metrics import precision_score, recall_score
+    m = ad.evaluate(ad.predict_strict, knn, clean, (1, 2, 3), (4, 5), focus_gas=4).set_index("test_batch")
+    test = clean[clean["batch"].isin([4, 5])]
+    pred = ad.predict_strict(knn, *[clean[clean["batch"] <= 3][c].to_numpy() for c in (FEATURE_COLS, "label", "batch")],
+                             test[FEATURE_COLS].to_numpy(float), test["batch"].to_numpy())
+    y = test["label"].to_numpy()
+    assert np.isclose(m.loc["pooled", "focus_recall"], recall_score(y, pred, labels=[4], average="macro"))
+    assert np.isclose(m.loc["pooled", "focus_precision"], precision_score(y, pred, labels=[4], average="macro"))
