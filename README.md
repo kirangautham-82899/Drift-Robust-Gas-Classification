@@ -135,8 +135,8 @@ so it is kept out of the headline.
 ## Conclusions
 
 1. **Drift is real and large.** The tuned SVM falls from 90.3% to 55.4%. Errors are structured: the SVM tends to label other
-   gases as Ethanol, and Ammonia holds up best: only 1 of the 10 analysed models drops below 40% found on any batch, against 4 to 8
-   of 10 for each other gas.
+   gases as Ethanol, and Ammonia holds up best: only 1 of the 10 analysed models finds fewer than 40% of Ammonia recordings in any batch,
+   against 4 to 8 of 10 for each other gas.
 2. **The best honest accuracy is about 73-75%.** The soft vote leads when pooled, but batch by batch it wins 3, loses 3 and
    ties 1 against the SVM, so it is not clearly better.
 3. **PCA and LDA are not a drift fix.** They help weak models and hurt strong ones.
