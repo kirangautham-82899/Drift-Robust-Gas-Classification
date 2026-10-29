@@ -263,7 +263,7 @@ def test_confusion_helper_counts_every_recording():
 
 
 def test_ammonia_claim_in_the_readme_matches_the_saved_models():
-    """README: only 1 of the 10 analysed models drops below 40% found on any batch for Ammonia, 4 to 8 for each other gas."""
+    """README: only 1 of the 10 analysed models finds fewer than 40% of Ammonia recordings in any batch, 4 to 8 for each other gas."""
     preds = common.predictions()
     models = [c for c in preds.columns if c not in ("batch", "label")]
     below = dict.fromkeys(common.GASES, 0)
@@ -278,7 +278,8 @@ def test_ammonia_claim_in_the_readme_matches_the_saved_models():
     assert len(models) == 10 and below["Ammonia"] == 1
     assert all(4 <= below[g] <= 8 for g in common.GASES if g != "Ammonia"), below
     readme = " ".join((ROOT / "README.md").read_text(encoding="utf-8").split())
-    assert "only 1 of the 10 analysed models drops below 40% found on any batch, against 4 to 8 of 10 for each other gas" in readme
+    assert ("only 1 of the 10 analysed models finds fewer than 40% of Ammonia recordings in any batch, "
+            "against 4 to 8 of 10 for each other gas") in readme
 
 
 # ------------------------------------------------------------------------------------------------ design system
