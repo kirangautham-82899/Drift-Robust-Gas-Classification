@@ -121,6 +121,44 @@ def test_acetaldehyde_table_matches_step13():
     assert share.idxmin() == "Acetaldehyde" and f"smallest class ({share.min():.1f}%)" in README
 
 
+def test_per_batch_average_claims_match_step13_and_step9():
+    """Per-batch averages next to the pooled numbers: per-batch std vs strict SVM, 25 random labels vs protocol C."""
+    m = read("step13_adaptation_metrics.csv")
+    a = m[(m["split"] == "A") & (m["test_batch"] != "pooled")]
+    mean = a.groupby("method")["accuracy"].apply(lambda s: s.astype(float).mean() * 100)
+    pbs, strict = mean["SVM + per-batch standardisation"], mean["SVM (strict)"]
+    assert pbs < strict and f"it scores {pbs:.1f}% against {strict:.1f}% for the strict SVM" in README
+
+    lab = read("step13_label_strategies.csv")
+    r = lab[(lab["method"] == "random labels, SVM") & (lab["split"] == "A") & (lab["test_batch"] != "pooled")]
+    r_mean = r.assign(accuracy=r["accuracy"].astype(float)).groupby("seed")["accuracy"].mean().mean() * 100
+
+    c = read("step9_stacking_metrics.csv")
+    c = c[(c["protocol"] == "C") & (c["model"] == "SVM") & c["test_batch"].isin([str(b) for b in range(4, 11)])]
+    acc, n = c["accuracy"].astype(float), c["n_test"].astype(float)
+    c_pooled, c_mean = (acc * n).sum() / n.sum() * 100, acc.mean() * 100
+    s = read("step13_label_strategies_summary.csv").set_index("method")
+    r_pooled = float(s.loc["random labels, SVM", "test accuracy %"])
+    assert (f"25 random labels per batch reach {r_pooled:.1f}%, against {c_pooled:.1f}% for protocol C on the same "
+            f"measure ({r_mean:.1f}% vs {c_mean:.1f}% averaged over batches)") in README
+    assert f"92.1% on test ({r_mean:.1f}% averaged over batches)" in README
+
+    counts = read("step1_gas_counts_per_batch.csv").set_index("batch")
+    test_sizes = counts.loc[list(range(4, 11))].sum(axis=1)
+    assert f"holds {test_sizes[10] / test_sizes.sum() * 100:.0f}% of the test recordings" in README
+    share10 = counts.loc[10] / counts.loc[10].sum()
+    assert (share10.round(4) == 0.2).all() and "has exactly 20% of each gas" in README
+
+
+def test_svm_support_vector_claim_matches_saved_model():
+    """'only 7 of its 213 support vectors sit at the limit where class weights act'."""
+    import joblib
+    import numpy as np
+    svc = joblib.load(ROOT / "results" / "models" / "tuned_none_svm_protocolA.joblib").named_steps["model"]
+    at_bound = int((np.abs(svc.dual_coef_) >= svc.C * (1 - 1e-6)).any(axis=0).sum())
+    assert svc.C == 100 and f"only {at_bound} of its {svc.n_support_.sum()} support vectors" in README
+
+
 def test_readme_has_required_sections_and_no_viva_sheet():
     for heading in ["## Main results", "## Conclusions", "## Limitations", "## How to reproduce", "## Where each number comes from"]:
         assert heading in README, heading

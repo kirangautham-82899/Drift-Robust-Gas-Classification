@@ -30,9 +30,9 @@ We trained classical models on the **first three batches** and tested them on th
 |:--|:--|
 | 🎯 **73.2%** | best single model (SVM) on later batches; a soft vote of five models reaches 75.5% |
 | 📉 **90.3% → 55.4%** | the SVM on batches close to training vs. batches furthest away |
-| 🎭 **97.2%** | what the same SVM *appears* to score with a random split; it hides the drift |
-| 🔁 **88.6%** | with recent labelled data (retraining before each batch) |
-| 🧪 **79.2% / 91.0%** | bonus: rescaling each new batch on its own (no labels) / plus 5 labels per gas per batch |
+| 🎭 **97.2%** | what the untuned SVM (72.7% time-aware) *appears* to score with a random split; it hides the drift |
+| 🔁 **88.6%** | with recent labelled data (retraining before each batch; mean over batches) |
+| 🧪 **79.2% / 92.1%** | bonus: rescaling each new batch on its own (no labels) / plus 25 random labels per batch |
 
 **Short answer: no, not fully.** Drift costs 11-35 points of accuracy, and no classical trick tested here (PCA, LDA,
 boosting, tuning, stacking) clearly fixes it. Using the new batches' own readings, or a few of their labels, does help.
@@ -80,7 +80,8 @@ Mean ± standard deviation over 10 seeds, tuned settings, each model with the re
 | Decision Tree | 52.6% ± 1.54 | 48.7% |
 | Naive Bayes + PCA | 51.4% ± 0.00 | 50.5% |
 
-Guessing the most common gas scores 21-23%.
+Guessing the most common gas scores 21-23%. A spread of ± 0.00 means the model has no randomness that the seed
+changes (SVM, kNN, Naive Bayes, and AdaBoost here), so the 10 seeds say nothing about its stability.
 
 <p align="center"><img src="results/step10_pooled_ci.png" alt="Pooled accuracy with 95% confidence intervals" width="80%"></p>
 
@@ -112,7 +113,7 @@ The same models and settings under three exams. "Random, same sizes" matches pro
 | AdaBoost | 47.2% | 85.2% | 86.6% |
 | Gradient Boosting | 55.8% | 98.7% | 99.2% |
 
-In a random split, 98% of test recordings have a near-twin from the same session in the training set, so models pass by
+In a random split, 98% of test recordings have their nearest neighbour in the training set from the same batch (0% under the time-aware split), so models pass by
 recognition. It also picks the wrong winner: Gradient Boosting looks like 99% but scores 55.8% under drift.
 
 <p align="center"><img src="results/step11_random_vs_time_aware.png" alt="Random split vs time-aware split" width="80%"></p>
@@ -138,8 +139,10 @@ so it is kept out of the headline.
 What if a method may use something from each new batch? **Tier 2** methods use the batch's sensor readings but never its
 gas labels; **tier 3** methods also get a few labelled recordings per gas, which are left out of the score. All use the
 tuned SVM. A method counts as an improvement only if it also beats the strict SVM on the Step 8 validation folds
-(batches 2 and 3), so nothing is chosen by looking at the test batches. These numbers use information protocol A
-forbids, so they are kept apart from the headline.
+(batches 2 and 3), so nothing is chosen by looking at the test batches. This check favours the strict SVM: its settings
+were tuned on those same folds, while the MLP and CORAL were not tuned at all. These numbers use information protocol A
+forbids, so they are kept apart from the headline. "Test" is accuracy over all test recordings, so the large batches 7
+and 10 weigh most.
 
 | Method | Tier | Validation | Test, batches 4-10 | Batch 10 |
 |---|---|---|---|---|
@@ -153,12 +156,16 @@ forbids, so they are kept apart from the headline.
 | SVM + per-batch std + 10 labels per gas | 3 | 97.1% | 94.6% | 89.9% |
 
 **Per-batch standardisation**, which scales each batch with its own mean and spread, is the fair tier-2 winner: +6.0
-points with no test labels. The MLP and CORAL look better on test but worse on validation, so they are not counted.
-The gain is uneven: per-batch scaling loses 25 points on batch 8, which is 52% Acetone, because it assumes a balanced
-gas mix. A few labels fix that and give the largest gains (tier-3 rows: mean of 10 seeds).
+points over all test recordings with no test labels. The MLP and CORAL look better on test but worse on validation, so
+they are not counted. The gain is uneven and depends on how batches are weighted: averaged over the seven test batches
+equally, it scores 80.9% against 81.4% for the strict SVM, so it does not help a typical batch. Most of the gain comes
+from batch 10, which holds 34% of the test recordings and has exactly 20% of each gas. Per-batch scaling builds each
+batch's gas mix into its features: it loses 25 points on batch 8, which is 52% Acetone. A few labels fix that and give
+the largest gains (tier-3 rows: mean of 10 seeds). The "labels per gas" rows pick a fixed number of recordings of each
+gas, which needs the labels to be known first; the fair version is a fixed budget picked at random, below.
 
-**Using the same labels more cleverly did not help.** With 25 random labels per new batch the SVM scores 96.2% on
-validation and 92.1% on test. Labelling the recordings the model is least sure about (active learning), weighting the
+**Using the same labels more cleverly did not help.** With 25 random labels per new batch (the same count as 5 per gas,
+picked without knowing the gas) the SVM scores 96.2% on validation and 92.1% on test (94.1% averaged over batches). Labelling the recordings the model is least sure about (active learning), weighting the
 labels, self-training, the soft vote and four other SVM settings never beat that on validation. Some reach 93.0% on
 test, but only a choice made by looking at the test batches would pick them. More labels is what helps.
 
@@ -176,6 +183,8 @@ the smallest class (11.9%). Recall = share of the real Acetaldehyde found; preci
 | SVM + per-batch std + 10 per gas, 20 Acetaldehyde | 99.4% | 93.1% | 99.4% | 95.2% |
 
 Without labels nothing fixes it, and per-batch standardisation even makes it worse, although overall accuracy rises.
+Class weights barely change this SVM: with C=100 the training batches are almost separable, so only 7 of its 213
+support vectors sit at the limit where class weights act.
 Labels from the new batches do: 10 per gas plus 20 Acetaldehyde finds almost all of it (tier-3 rows: mean of 5 seeds).
 
 <p align="center"><img src="results/step13_methods.png" alt="Drift adaptation, validation vs test" width="80%"></p>
@@ -194,8 +203,9 @@ Labels from the new batches do: 10 per gas plus 20 Acetaldehyde finds almost all
 5. **Stacking did not beat the best single model** (69.5% vs 73.2%).
 6. **Random splits mislead**: 96-99% instead of 50-73%, the drift disappears and the ranking changes.
 7. **Recent labels help most** (protocol C: 85-89%), but they cost labelling every new batch.
-8. **Adapting to each new batch helps** (bonus, Step 13): per-batch standardisation lifts the SVM to 79.2% without labels,
-   and 5 labels per gas per batch reach 91.0%, more than protocol C with far fewer labels.
+8. **Adapting to each new batch helps** (bonus, Step 13): per-batch standardisation lifts the SVM to 79.2% over all test
+   recordings without labels (but not on the per-batch average), and 25 random labels per batch reach 92.1%, against
+   82.3% for protocol C on the same measure (94.1% vs 88.6% averaged over batches), with far fewer labels.
 
 ## Interactive dashboard
 
@@ -244,7 +254,7 @@ The cloud installs the lean `app/requirements.txt` and reads the theme from `.st
 python -m venv .venv && .venv\Scripts\activate
 pip install -r requirements.txt
 
-python -m pytest tests -q            # full test suite, about 40 s
+python -m pytest tests -q            # full test suite, about 2 min
 streamlit run app/app.py             # dashboard
 ```
 
