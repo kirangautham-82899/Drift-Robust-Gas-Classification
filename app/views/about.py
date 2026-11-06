@@ -28,8 +28,8 @@ limits = [
     ("The Dennler baseline check is a proxy", "The raw pre-exposure baseline of Dennler et al. (2022) is not in this dataset version, so we use proxies and label them as proxies."),
     ("Small, uneven batches", "Batches 4, 5, 8 and 9 have 161-369 recordings (as few as 12 per gas), so their individual results are noisy, and the gas mix differs between batches."),
     ("Gas concentration is missing", "Concentration changed between batches and is not in this dataset version, so it cannot be separated from sensor ageing."),
-    ("One training period", "Only batches 1-3 are used as training data. Seeds and bootstrap intervals do not capture the effect of choosing a different period."),
-    ("Intervals are too narrow", "The bootstrap treats recordings as independent, but recordings made close together are alike, so the true uncertainty is larger."),
+    ("One training period", "The headline results train on batches 1-3 only. Step 14 checks five other training periods with the same settings: the drift findings hold, but trained on batches 1-2 alone the SVM drops to 50%."),
+    ("Intervals are too narrow", "The bootstrap shown on these pages treats recordings as independent, but recordings of one batch are alike. Resampling whole batches (Step 14) gives the SVM a 95% interval of about 56-89%."),
     ("Tuned models: protocol A only", "Protocols B and C test batches 2 and 3, which tuning used for validation. The stack has no protocol B."),
     ("No perfect accuracy", "Under drift no model keeps more than 67% on the far batches. One dataset, so conclusions may not transfer to other sensors."),
 ]

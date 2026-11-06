@@ -140,7 +140,7 @@ What if a method may use something from each new batch? **Tier 2** methods use t
 gas labels; **tier 3** methods also get a few labelled recordings per gas, which are left out of the score. All use the
 tuned SVM. A method counts as an improvement only if it also beats the strict SVM on the Step 8 validation folds
 (batches 2 and 3), so nothing is chosen by looking at the test batches. This check favours the strict SVM: its settings
-were tuned on those same folds, while the MLP and CORAL were not tuned at all. These numbers use information protocol A
+were tuned on those same folds, while the MLP and CORAL were not tuned at all (Step 14 tunes them; the verdict holds). These numbers use information protocol A
 forbids, so they are kept apart from the headline. "Test" is accuracy over all test recordings, so the large batches 7
 and 10 weigh most.
 
@@ -189,13 +189,82 @@ Labels from the new batches do: 10 per gas plus 20 Acetaldehyde finds almost all
 
 <p align="center"><img src="results/step13_methods.png" alt="Drift adaptation, validation vs test" width="80%"></p>
 
+### Robustness checks (Step 14)
+
+Four checks of whether the findings above hold up. Rows inside the batch files are not in time order (batches 1-6 are
+sorted by gas, batch 10 is shuffled), so checks that need the order of recordings inside a batch are replaced by ones
+that do not.
+
+**Honest intervals: resample whole batches.** Recordings in one batch share sensor state, so the row bootstrap of Step 10
+is far too narrow. Resampling the seven test batches instead asks how much each result depends on which batches were
+tested.
+
+| Model | Pooled accuracy | 95% interval, rows resampled | 95% interval, batches resampled | Difference vs SVM, batches resampled |
+|---|---|---|---|---|
+| Soft vote | 75.3% | 74.4-76.2 | 66.1-87.6 | +2.1 (-4.3 to +10.8) |
+| SVM | 73.2% | 72.4-74.0 | 55.8-89.2 | |
+| Stack (LR) | 70.2% | 69.2-71.1 | 60.2-82.9 | -3.0 (-12.0 to +5.3) |
+| Random Forest + PCA | 69.5% | 68.6-70.5 | 58.3-83.0 | -3.7 (-12.3 to +3.5) |
+| kNN + PCA | 64.9% | 63.9-65.9 | 60.2-71.3 | -8.3 (-19.3 to +4.8) |
+| Naive Bayes + PCA | 51.4% | 50.4-52.4 | 37.1-66.2 | -21.8 (-29.3 to -16.8) |
+| Decision Tree | 49.7% | 48.8-50.7 | 38.9-68.8 | -23.5 (-33.8 to -15.5) |
+
+With honest intervals, only Naive Bayes and the Decision Tree are clearly worse than the SVM; the soft vote, the stack,
+Random Forest, the boosting models and kNN cannot be told apart from it on seven batches.
+
+**Per-batch standardisation from a small sample.** The full method needs a whole new batch before it predicts anything.
+Here each new batch is scaled with the statistics of only some of its recordings, drawn at random (mean of 10 seeds).
+
+| Recordings used per new batch | Validation | Test, batches 4-10 | Worst seed | Batch 10 |
+|---|---|---|---|---|
+| 10 | 79.8% | 69.4% | 59.8% | 53.5% |
+| 25 | 83.4% | 76.4% | 73.8% | 58.9% |
+| 50 | 87.1% | 77.3% | 75.1% | 61.5% |
+| 100 | 88.7% | 78.2% | 76.8% | 62.3% |
+| 200 | 89.7% | 78.4% | 77.3% | 61.8% |
+| all | 90.6% | 79.2% | 79.2% | 63.3% |
+
+About 100 unlabelled recordings per batch keep most of the gain; with 10 it is worse than the strict SVM (73.2%).
+
+**MLP and CORAL tuned on the same validation folds as the SVM.** This removes the advantage the strict SVM had in the
+Step 13 validation check.
+
+| Method | Validation, untuned | Validation, tuned | Test, tuned |
+|---|---|---|---|
+| MLP, tuned on validation | 80.5% | 81.1% | 77.2% |
+| SVM + CORAL, tuned on validation | 80.3% | 88.5% | 77.5% |
+| SVM (strict), for reference | | 88.6% | 73.2% |
+
+Tuning makes CORAL almost tie the strict SVM on validation, but neither beats it there, so neither counts as an
+improvement. The Step 13 verdict stands.
+
+**Other training periods.** The tuned models (Step 8 settings) and the per-batch-standardised SVM, trained on six
+different sets of early batches. Batch 3 helped choose the settings, so it is never a test batch.
+
+| Training batches | Test batches | SVM (strict) | SVM rank among 7 strict models | SVM + per-batch std | SVM (strict), mean over batches | SVM + per-batch std, mean over batches |
+|---|---|---|---|---|---|---|
+| 1-2 | 4-10 | 50.2% | 5 | 74.7% | 58.5% | 76.5% |
+| 1-3 | 4-10 | 73.2% | 1 | 79.2% | 81.4% | 80.9% |
+| 2-3 | 4-10 | 71.2% | 1 | 78.1% | 80.9% | 79.1% |
+| 1-4 | 5-10 | 73.3% | 1 | 77.5% | 80.4% | 78.0% |
+| 2-4 | 5-10 | 71.1% | 1 | 77.8% | 81.5% | 78.2% |
+| 1-5 | 6-10 | 72.5% | 1 | 77.3% | 75.6% | 73.0% |
+
+The findings mostly hold. In 47 of 48 runs a model scores lower on batches 8-10 than on its first three test batches.
+The strict SVM is the best strict model in 5 of 6 periods; trained on batches 1-2 only, it falls to 50.2%. Per-batch
+standardisation wins over all test recordings in every period, but averaged over batches only in 1 of 6, the same
+pattern as in Step 13.
+
+<p align="center"><img src="results/step14_robustness.png" alt="Batch-level intervals and training periods" width="80%"></p>
+
 ## Conclusions
 
 1. **Drift is real and large.** The tuned SVM falls from 90.3% to 55.4%. Errors are structured: the SVM tends to label other
    gases as Ethanol, and Ammonia holds up best: only 1 of the 10 analysed models finds fewer than 40% of Ammonia recordings in any batch,
    against 4 to 8 of 10 for each other gas.
-2. **The best honest accuracy is about 73-75%.** The soft vote leads when pooled, but batch by batch it wins 3, loses 3 and
-   ties 1 against the SVM, so it is not clearly better.
+2. **The best honest accuracy is about 73-75%, with wide uncertainty.** The soft vote leads when pooled, but batch by
+   batch it wins 3, loses 3 and ties 1 against the SVM, so it is not clearly better. Resampling whole batches (Step 14)
+   gives the SVM a 95% interval of 55.8-89.2%, and only Naive Bayes and the Decision Tree are clearly worse than it.
 3. **PCA and LDA are not a drift fix.** They help weak models and hurt strong ones.
 4. **Boosting and tuning did not help clearly.** 5 of 21 model/reduction combinations improved, 7 stayed about the same and
    9 got worse. Validation on nearby batches does not predict later batches (correlation -0.14; validation was on average
@@ -206,6 +275,9 @@ Labels from the new batches do: 10 per gas plus 20 Acetaldehyde finds almost all
 8. **Adapting to each new batch helps** (bonus, Step 13): per-batch standardisation lifts the SVM to 79.2% over all test
    recordings without labels (but not on the per-batch average), and 25 random labels per batch reach 92.1%, against
    82.3% for protocol C on the same measure (94.1% vs 88.6% averaged over batches), with far fewer labels.
+9. **The drift findings survive other training periods** (Step 14): accuracy falls on later batches in 47 of 48 runs,
+   and the SVM is the best strict model in 5 of 6 periods. Per-batch standardisation works from about 100 unlabelled
+   recordings per batch, but it only beats the strict SVM averaged over batches in 1 of 6 periods.
 
 ## Interactive dashboard
 
@@ -242,8 +314,12 @@ The cloud installs the lean `app/requirements.txt` and reads the theme from `.st
 
 - **Five gases only**, and **gas concentration is not in this dataset version**, so it cannot be separated from ageing.
 - **Small, uneven batches** (4, 5, 8 and 9 hold 161-369 samples) make single-batch results noisy.
-- **One training period** (batches 1-3); seeds and bootstrap intervals do not cover other choices.
-- **Intervals are too narrow**: the bootstrap treats neighbouring recordings as independent.
+- **The headline uses one training period** (batches 1-3); Step 14 checks five others with the same settings, which
+  were tuned on batches 1-3.
+- **Row-bootstrap intervals are too narrow** (Steps 10-13): they treat recordings of one batch as independent. Step 14's
+  batch-level intervals are honest but rest on only seven test batches.
+- **No time order inside batches**: the files sort or shuffle recordings, so drift within a batch, a moving-block
+  bootstrap and recording-by-recording adaptation cannot be studied.
 - **Tuned models are tested on protocol A only**, with small grids and two validation folds.
 - **The Dennler et al. (2022) baseline check** needs raw data this version lacks; we use clearly labelled proxies.
 - **One dataset**: conclusions may not transfer to other sensors.
@@ -273,6 +349,7 @@ python scripts/run_step9_stacking.py   # about 11 min, then notebook 09
 python scripts/run_step11_leakage.py   # about 20 min, then notebook 11
 python scripts/run_step12_repeats.py   # about 6 min,  then notebook 12
 python scripts/run_step13_adaptation.py # about 6 min, then notebook 13 (bonus)
+python scripts/run_step14_robustness.py # about 3 min, writes results/step14_* (no notebook)
 python scripts/make_dashboard_cache.py # optional: saves predictions so the dashboard opens faster
 ```
 
@@ -302,6 +379,7 @@ On Windows, if pip fails with `CERTIFICATE_VERIFY_FAILED`, add `--use-feature=tr
 | Bonus drift adaptation | `results/step13_summary.csv` | `13_drift_adaptation` |
 | Bonus: using 25 labels per batch | `results/step13_label_strategies_summary.csv` | `13_drift_adaptation` |
 | Bonus: Acetaldehyde | `results/step13_acetaldehyde_summary.csv` | `13_drift_adaptation` |
+| Robustness checks | `results/step14_*_summary.csv`, `results/step14_batch_bootstrap.csv` | `scripts/run_step14_robustness.py` |
 
 </details>
 
@@ -315,8 +393,8 @@ app/          Streamlit dashboard (app.py, design.py, ui.py, motion.js, views/)
 data_raw/     original batch files, never modified
 notebooks/    one notebook per step, with results and explanations
 results/      saved tables, figures and trained models
-scripts/      long-running, restartable jobs (Steps 8, 9, 11, 12, 13)
-src/          loading, evaluation, models, tuning, stacking, analysis, adaptation
+scripts/      long-running, restartable jobs (Steps 8, 9, 11, 12, 13, 14)
+src/          loading, evaluation, models, tuning, stacking, analysis, adaptation, robustness
 tests/        data-integrity, leakage, dashboard and README-number checks
 ```
 

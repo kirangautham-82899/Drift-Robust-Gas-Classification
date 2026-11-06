@@ -132,6 +132,12 @@ Ask the teacher before B2: these methods go beyond the Zeroth review objectives.
 standardisation, CORAL, self-training and a few labels per gas, with a tier 1 → 2 → 3 graph (`results/step13_methods.png`).
 Subspace alignment, recency weighting, B1 and the Toluene appendix were not done.
 
+**Step 14 (robustness checks, `scripts/run_step14_robustness.py`, `src/robustness.py`):** batch-level bootstrap
+intervals; per-batch standardisation from only 10-200 recordings of each new batch; MLP and CORAL tuned on the same
+validation folds as the SVM; and six different training periods. Rows inside the batch files are not in time order
+(batches 1-6 are sorted by gas, batch 10 is shuffled), so a moving-block bootstrap and a rolling, recording-by-recording
+standardisation could not be simulated faithfully; the batch bootstrap and random samples are used instead.
+
 ### Tiers (what the model may use from new batches)
 1. **Strict:** nothing. Train on early batches, test on later ones.
 2. **Unlabelled adaptation:** only the new batch's raw readings, no gas labels.

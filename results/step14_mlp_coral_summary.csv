@@ -1,0 +1,3 @@
+method,settings,validation accuracy % (untuned),validation accuracy %,test accuracy % (untuned),test accuracy %,seeds,strict SVM validation %,wins on validation
+"MLP, tuned on validation","{""hidden_layer_sizes"": [128], ""alpha"": 0.0001}",80.506011539632,81.10098246663958,75.64913861051684,77.2007656795406,5,88.62255184844793,False
+"SVM + CORAL, tuned on validation","{""eps"": 10.0, ""C"": 10, ""gamma"": 0.01}",80.30077036050918,88.46616937753365,77.40119355928387,77.4800135119919,1,88.62255184844793,False

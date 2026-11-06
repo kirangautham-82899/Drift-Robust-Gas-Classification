@@ -159,6 +159,73 @@ def test_svm_support_vector_claim_matches_saved_model():
     assert svc.C == 100 and f"only {at_bound} of its {svc.n_support_.sum()} support vectors" in README
 
 
+def test_batch_bootstrap_table_matches_step14():
+    s = read("step14_batch_bootstrap.csv").set_index("model")
+    f = lambda v: f"{float(v):.1f}"
+    signed = lambda v: f"{float(v):+.1f}"
+    for m in ["Soft vote", "SVM", "Stack (LR)", "Random Forest + PCA", "kNN + PCA", "Naive Bayes + PCA", "Decision Tree"]:
+        x = s.loc[m]
+        diff = "" if m == "SVM" else (f"{signed(x['vs SVM (points)'])} ({f(x['vs SVM CI low'])} to "
+                                      f"{signed(x['vs SVM CI high']) if float(x['vs SVM CI high']) > 0 else f(x['vs SVM CI high'])})")
+        expected = (f"| {m} | {f(x['pooled accuracy %'])}% | {f(x['row CI low'])}-{f(x['row CI high'])} "
+                    f"| {f(x['batch CI low'])}-{f(x['batch CI high'])} | {diff} |")
+        assert row(expected) in README, expected
+    # "only Naive Bayes and the Decision Tree are clearly worse than the SVM"
+    clearly_worse = s.drop(index="SVM")
+    clearly_worse = set(clearly_worse[clearly_worse["vs SVM CI high"].astype(float) < 0].index)
+    assert clearly_worse == {"Naive Bayes + PCA", "Decision Tree"}
+    assert (s.drop(index="SVM")["vs SVM CI low"].astype(float) < 0).all()      # nothing clearly better
+    svm = s.loc["SVM"]
+    assert f"95% interval of {f(svm['batch CI low'])}-{f(svm['batch CI high'])}%" in README
+
+
+def test_subsample_std_table_matches_step14():
+    s = read("step14_subsample_std_summary.csv")
+    for x in s.to_dict("records"):
+        f = {k: f"{float(v):.1f}%" for k, v in x.items() if k.endswith("%")}
+        expected = (f"| {x['recordings used per new batch']} | {f['validation accuracy %']} | {f['test accuracy %']} "
+                    f"| {f['test worst seed %']} | {f['batch 10 accuracy %']} |")
+        assert row(expected) in README, expected
+    by_n = s.set_index("recordings used per new batch")["test accuracy %"].astype(float)
+    strict = float(read("step13_summary.csv").set_index("method").loc["SVM (strict)", "test accuracy %"])
+    assert by_n["10"] < strict < by_n["25"]                     # "with 10 it is worse than the strict SVM"
+
+
+def test_tuned_mlp_coral_table_matches_step14():
+    s = read("step14_mlp_coral_summary.csv").set_index("method")
+    for m, x in s.iterrows():
+        expected = (f"| {m} | {float(x['validation accuracy % (untuned)']):.1f}% | {float(x['validation accuracy %']):.1f}% "
+                    f"| {float(x['test accuracy %']):.1f}% |")
+        assert row(expected) in README, expected
+        assert str(x["wins on validation"]) == "False"           # "neither beats it there"
+    strict = read("step13_summary.csv").set_index("method").loc["SVM (strict)"]
+    assert row(f"| SVM (strict), for reference | | {float(strict['validation accuracy %']):.1f}% "
+               f"| {float(strict['test accuracy %']):.1f}% |") in README
+
+
+def test_training_period_table_and_claims_match_step14():
+    s = read("step14_training_periods_summary.csv")
+    strict = s[s["model"] != "SVM + per-batch standardisation"].copy()
+    strict["strict rank"] = strict.groupby("training batches")["pooled accuracy %"].rank(ascending=False).astype(int)
+    svm = strict[strict["model"] == "SVM"].set_index("training batches")
+    pbs = s[s["model"] == "SVM + per-batch standardisation"].set_index("training batches")
+    for period in svm.index:
+        a, b = svm.loc[period], pbs.loc[period]
+        shown = period.split("-")[0] + ("-" + period.split("-")[-1] if "-" in period else "")
+        expected = (f"| {shown} | {a['test batches']} | {float(a['pooled accuracy %']):.1f}% | {a['strict rank']} "
+                    f"| {float(b['pooled accuracy %']):.1f}% | {float(a['mean over batches %']):.1f}% "
+                    f"| {float(b['mean over batches %']):.1f}% |")
+        assert row(expected) in README, expected
+    falls = int((s["drop (points)"].astype(float) < 0).sum())
+    assert f"{falls} of {len(s)} runs" in README
+    assert f"best strict model in {int((svm['strict rank'] == 1).sum())} of {len(svm)} periods" in README
+    assert (pbs["pooled accuracy %"].astype(float) > svm["pooled accuracy %"].astype(float)).all()   # "in every period"
+    wins_mean = int((pbs["mean over batches %"].astype(float) > svm["mean over batches %"].astype(float)).sum())
+    assert f"averaged over batches only in {wins_mean} of {len(pbs)}" in README
+    first_test = s["test batches"].astype(str).str.split("-").str[0].astype(int)
+    assert (first_test >= 4).all()                                                                  # batch 3 never tested
+
+
 def test_readme_has_required_sections_and_no_viva_sheet():
     for heading in ["## Main results", "## Conclusions", "## Limitations", "## How to reproduce", "## Where each number comes from"]:
         assert heading in README, heading
