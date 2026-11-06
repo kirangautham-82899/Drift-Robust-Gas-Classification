@@ -250,7 +250,8 @@ different sets of early batches. Batch 3 helped choose the settings, so it is ne
 | 2-4 | 5-10 | 71.1% | 1 | 77.8% | 81.5% | 78.2% |
 | 1-5 | 6-10 | 72.5% | 1 | 77.3% | 75.6% | 73.0% |
 
-The findings mostly hold. In 47 of 48 runs a model scores lower on batches 8-10 than on its first three test batches.
+The findings mostly hold. In 48 of 48 runs a model scores lower on batches 8-10 than on its first test batches before
+batch 8 (at most three).
 The strict SVM is the best strict model in 5 of 6 periods; trained on batches 1-2 only, it falls to 50.2%. Per-batch
 standardisation wins over all test recordings in every period, but averaged over batches only in 1 of 6, the same
 pattern as in Step 13.
@@ -275,7 +276,7 @@ pattern as in Step 13.
 8. **Adapting to each new batch helps** (bonus, Step 13): per-batch standardisation lifts the SVM to 79.2% over all test
    recordings without labels (but not on the per-batch average), and 25 random labels per batch reach 92.1%, against
    82.3% for protocol C on the same measure (94.1% vs 88.6% averaged over batches), with far fewer labels.
-9. **The drift findings survive other training periods** (Step 14): accuracy falls on later batches in 47 of 48 runs,
+9. **The drift findings survive other training periods** (Step 14): accuracy falls on later batches in 48 of 48 runs,
    and the SVM is the best strict model in 5 of 6 periods. Per-batch standardisation works from about 100 unlabelled
    recordings per batch, but it only beats the strict SVM averaged over batches in 1 of 6 periods.
 

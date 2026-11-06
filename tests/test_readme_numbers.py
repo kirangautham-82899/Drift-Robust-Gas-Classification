@@ -216,6 +216,8 @@ def test_training_period_table_and_claims_match_step14():
                     f"| {float(b['pooled accuracy %']):.1f}% | {float(a['mean over batches %']):.1f}% "
                     f"| {float(b['mean over batches %']):.1f}% |")
         assert row(expected) in README, expected
+    near = s["near batches"].astype(str).str.split("-")
+    assert near.map(lambda bs: all(int(b) < 8 for b in bs) and 1 <= len(bs) <= 3).all()   # near and far never overlap
     falls = int((s["drop (points)"].astype(float) < 0).sum())
     assert f"{falls} of {len(s)} runs" in README
     assert f"best strict model in {int((svm['strict rank'] == 1).sum())} of {len(svm)} periods" in README

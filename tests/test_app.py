@@ -123,6 +123,7 @@ def test_model_results_controls_work():
 def test_per_batch_page_controls_and_the_soft_vote_caution():
     at = run("per_batch_drift")
     assert "beats the SVM on <strong>3</strong> batches, loses on <strong>3</strong> and ties on <strong>1</strong>" in page_text(at)
+    assert "only <strong>Naive Bayes + PCA and Decision Tree</strong> stay clearly worse" in page_text(at)   # Step 14
     at.radio[0].set_value("Macro-F1")
     at.checkbox[0].set_value(False)
     at.run()

@@ -97,5 +97,11 @@ wins, losses, ties = (int((acc.loc["Soft vote"] > acc.loc["SVM"]).sum()), int((a
                       int((acc.loc["Soft vote"] == acc.loc["SVM"]).sum()))
 callout("A model is only called better or worse when its whole confidence interval is above or below zero. Tuning the SVM made no clear difference "
         "(untuned SVM: not clearly different), and every other model is clearly worse than the tuned SVM except the soft vote.")
+honest = read_result("step14_batch_bootstrap.csv").set_index("model")
+worse = [m for m in honest.index if m != "SVM" and float(honest.loc[m, "vs SVM CI high"]) < 0]
+svm_ci = honest.loc["SVM"]
+caution(f"These intervals resample single recordings. Resampling whole batches (Step 14), which respects that recordings of one "
+        f"batch are alike, gives the SVM a 95% interval of **{float(svm_ci['batch CI low']):.1f}-{float(svm_ci['batch CI high']):.1f}%**, "
+        f"and then only **{' and '.join(worse)}** stay clearly worse than it.")
 caution(f"The soft vote's interval excludes zero only if recordings are independent, which they are not. Batch by batch it beats the SVM on **{wins}** "
         f"batches, loses on **{losses}** and ties on **{ties}**, and its pooled lead comes mostly from batch 10, so we do not claim it is generally better.")

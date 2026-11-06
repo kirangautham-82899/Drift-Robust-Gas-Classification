@@ -231,11 +231,14 @@ def part_training_periods(df, svm):
     for (period, model), g in done.groupby(["period", "model"], sort=False):
         per = g[g["test_batch"] != "pooled"].assign(b=lambda d: d["test_batch"].astype(int),
                                                     a=lambda d: d["accuracy"].astype(float) * 100)
-        first3, far = per.nsmallest(3, "b")["a"].mean(), per[per["b"] >= 8]["a"].mean()
+        # near = the first (up to 3) test batches before batch 8, so near and far never share a batch
+        near_b = per[per["b"] < 8].nsmallest(3, "b")
+        near, far = near_b["a"].mean(), per[per["b"] >= 8]["a"].mean()
         rows.append({"training batches": period, "test batches": f"{per['b'].min()}-10", "model": model,
                      "pooled accuracy %": float(g[g["test_batch"] == "pooled"]["accuracy"].iloc[0]) * 100,
-                     "mean over batches %": per["a"].mean(), "first 3 test batches %": first3,
-                     "batches 8-10 %": far, "drop (points)": far - first3})
+                     "mean over batches %": per["a"].mean(),
+                     "near batches": "-".join(map(str, sorted(near_b["b"]))), "near %": near,
+                     "batches 8-10 %": far, "drop (points)": far - near})
     out = pd.DataFrame(rows)
     out["rank (pooled)"] = out.groupby("training batches")["pooled accuracy %"].rank(ascending=False).astype(int)
     out.to_csv(RES / "step14_training_periods_summary.csv", index=False)
