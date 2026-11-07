@@ -57,13 +57,6 @@ def cached_runs(path, key_cols, jobs, run):
     return done
 
 
-def pooled_acc(done, **where):
-    sel = done
-    for k, v in where.items():
-        sel = sel[sel[k].astype(str) == str(v)]
-    return sel[sel["test_batch"] == "pooled"]["accuracy"].astype(float)
-
-
 # ------------------------------------------------------------------------------------------- 1. batch bootstrap
 def part_batch_bootstrap():
     pred = pd.read_csv(RES / "dashboard_predictions.csv")

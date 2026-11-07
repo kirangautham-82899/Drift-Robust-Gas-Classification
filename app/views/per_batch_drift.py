@@ -7,7 +7,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 from common import ANALYSIS_MODELS, read_result
-from design import cat, model_color, rgba, sequential_scale, style, tint, tok
+from design import cat, model_color, rgba, sequential_scale, style, tok
 from ui import callout, caution, figure, hero, section
 
 ci = read_result("step10_per_batch_ci.csv")

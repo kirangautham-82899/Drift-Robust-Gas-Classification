@@ -3,7 +3,6 @@ import html
 import re
 from pathlib import Path
 
-import pandas as pd
 import streamlit as st
 
 from design import CHART_CONFIG, apply_theme  # noqa: F401  (apply_theme re-exported for the entry point)
@@ -184,7 +183,3 @@ def page_steps(ordered, current):
 def footer():
     html_block('<div class="foot"><div><strong>Gas sensor drift</strong> · drift-robust gas classification with classical machine learning</div>'
                '<div>Data: UCI Gas Sensor Array Drift Dataset (Vergara et al., 2012)</div></div>')
-
-
-def table_df(df, **kwargs):
-    return pd.DataFrame(df, **kwargs)

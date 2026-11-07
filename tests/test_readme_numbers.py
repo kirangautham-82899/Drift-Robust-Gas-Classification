@@ -2,7 +2,6 @@
 from pathlib import Path
 
 import pandas as pd
-import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 README = " ".join((ROOT / "README.md").read_text(encoding="utf-8").split())   # whitespace-normalised

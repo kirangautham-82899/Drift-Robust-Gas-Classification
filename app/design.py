@@ -5,8 +5,8 @@ text and an indigo-to-violet accent. The chart palette is separate and unchanged
 
 The categorical palette is the validated reference palette (every hard check passes in light and dark mode, see
 the dataviz guidance). Colour follows the entity: a gas or a model keeps the same colour on every page and in every
-filter. Single-series charts use one colour. Heatmaps use one blue ramp (sequential) or blue-red with a grey middle
-(diverging). Text always wears text colours, never a series colour.
+filter. Single-series charts use one colour. Heatmaps use one blue ramp (sequential).
+Text always wears text colours, never a series colour.
 """
 import streamlit as st
 
@@ -31,9 +31,8 @@ CATEGORICAL = {
     "light": ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"],
     "dark": ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767"],
 }
-# Sequential single hue (blue 100 -> 700); diverging blue <-> red with a grey middle
+# Sequential single hue (blue 100 -> 700)
 SEQUENTIAL = ["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d366b"]
-DIVERGING_POLES = {"light": ("#e34948", "#2a78d6"), "dark": ("#e66767", "#3987e5")}
 
 GAS_SLOT = {"Ethanol": 0, "Ethylene": 1, "Ammonia": 2, "Acetaldehyde": 3, "Acetone": 4}
 GAS_SYMBOL = {"Ethanol": "circle", "Ethylene": "square", "Ammonia": "diamond", "Acetaldehyde": "triangle-up", "Acetone": "x"}
@@ -94,11 +93,6 @@ def ordinal_scale():
 def tint(alpha=0.32):
     """The first series colour as a translucent tint, for the 'everything else' bars when one bar is highlighted."""
     return rgba(cat(0), alpha)
-
-
-def diverging_scale():
-    low, high = DIVERGING_POLES[mode()]
-    return [[0, low], [0.5, tok()["mid"]], [1, high]]
 
 
 # ------------------------------------------------------------------------------------------------ page CSS
